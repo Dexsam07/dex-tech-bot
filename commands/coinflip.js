@@ -1,33 +1,62 @@
+//════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
+//                                                             𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓                                                                                                     //
+//                                                                  𝐕 : 1.0.0                                                                                                             //
+//                                                                 𝐂𝐎𝐏𝐘𝐑𝐈𝐆𝐇𝐓 2026                                                                                                        //
+//════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
+//* 
+//  * file : commands/coinflip.js
+//  * description : Coin flip game with atomic data saving
+//  * Credit To  DEX SHYAM TECH
+// ⛥┌┤
+// */
+
 const fs = require('fs');
 const path = require('path');
 
 // File paths
-const CHIPS_FILE = './data/chips.json';
-const COINSTATS_FILE = './data/coinflip.json';
+const CHIPS_FILE = path.join(__dirname, '../data/chips.json');
+const COINSTATS_FILE = path.join(__dirname, '../data/coinflip.json');
 
 // Ensure data directory exists
-if (!fs.existsSync('./data')) {
-    fs.mkdirSync('./data', { recursive: true });
+const dataDir = path.join(__dirname, '../data');
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
 }
 
-// Load or initialize data
+// ========== ATOMIC SAVE (Temp + Rename) ==========
+function saveDataAtomic(file, data) {
+    try {
+        const tempFile = file + '.tmp';
+        fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), 'utf8');
+        fs.renameSync(tempFile, file);
+        return true;
+    } catch (error) {
+        console.error(`❌ Error saving ${file}:`, error.message);
+        // Try to clean up temp file if exists
+        try { fs.unlinkSync(file + '.tmp'); } catch (_) {}
+        return false;
+    }
+}
+
+// ========== SAFE LOAD (with auto-recovery) ==========
 function loadData(file, defaultValue = {}) {
     try {
         if (fs.existsSync(file)) {
-            return JSON.parse(fs.readFileSync(file, 'utf8'));
+            const raw = fs.readFileSync(file, 'utf8');
+            const parsed = JSON.parse(raw);
+            return parsed;
         }
     } catch (error) {
-        console.error(`Error loading ${file}:`, error);
+        console.error(`⚠️ Error loading ${file}, resetting to default:`, error.message);
+        // If file is corrupted, rewrite default
+        saveDataAtomic(file, defaultValue);
     }
     return defaultValue;
 }
 
+// ========== WRAPPER for saveData (backward compatible) ==========
 function saveData(file, data) {
-    try {
-        fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
-    } catch (error) {
-        console.error(`Error saving ${file}:`, error);
-    }
+    return saveDataAtomic(file, data);
 }
 
 // Get user ID
@@ -63,7 +92,7 @@ function getUserChips(userId) {
     const chipsData = loadData(CHIPS_FILE, {});
     if (!chipsData[userId]) {
         chipsData[userId] = {
-            chips: 1000, // Starting chips
+            chips: 1000,
             lastDaily: null,
             totalWon: 0,
             totalLost: 0
@@ -73,7 +102,7 @@ function getUserChips(userId) {
     return chipsData[userId].chips;
 }
 
-// Update user chips
+// Update user chips (atomic)
 function updateUserChips(userId, amount, isWin = false) {
     const chipsData = loadData(CHIPS_FILE, {});
     if (!chipsData[userId]) {
@@ -100,7 +129,7 @@ function updateUserChips(userId, amount, isWin = false) {
     return chipsData[userId].chips;
 }
 
-// Update coin stats
+// Update coin stats (atomic)
 function updateCoinStats(userId, choice, result, bet = 0, won = false) {
     const statsData = loadData(COINSTATS_FILE, {});
     
@@ -179,7 +208,7 @@ function getUserStats(userId) {
     return statsData[userId] || null;
 }
 
-// Daily bonus
+// Daily bonus (atomic)
 function claimDailyBonus(userId) {
     const chipsData = loadData(CHIPS_FILE, {});
     
@@ -216,7 +245,8 @@ function formatNumber(num) {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-// Main coin flip command
+// ========== COMMANDS ==========
+
 async function coinflipCommand(sock, chatId, message, args) {
     try {
         const userId = getUserId(message);
@@ -229,7 +259,6 @@ async function coinflipCommand(sock, chatId, message, args) {
         if (args.length > 0) {
             const firstArg = args[0].toLowerCase();
             
-            // Check if first arg is heads/tails
             if (firstArg === 'heads' || firstArg === 'h' || firstArg === 'head') {
                 choice = 'heads';
                 args.shift();
@@ -238,7 +267,6 @@ async function coinflipCommand(sock, chatId, message, args) {
                 args.shift();
             }
             
-            // Check for bet amount
             if (args.length > 0) {
                 const betArg = args[0];
                 if (!isNaN(betArg) && parseInt(betArg) > 0) {
@@ -278,7 +306,6 @@ async function coinflipCommand(sock, chatId, message, args) {
         const resultEmoji = result === 'heads' ? '🟡' : '⚫';
         const choiceEmoji = choice === 'heads' ? '🟡' : (choice === 'tails' ? '⚫' : '');
         
-        // Determine win/loss
         let won = false;
         let chipsChange = 0;
         let resultText = '';
@@ -286,13 +313,12 @@ async function coinflipCommand(sock, chatId, message, args) {
         if (choice) {
             if (choice === result) {
                 won = true;
-                chipsChange = betAmount; // Win 1:1
+                chipsChange = betAmount;
                 resultText = '🎉 *YOU WIN!*';
                 
-                // Streak bonus
                 const userStats = getUserStats(userId);
                 if (userStats && userStats.currentStreak >= 5) {
-                    const bonus = Math.floor(betAmount * 0.1); // 10% bonus
+                    const bonus = Math.floor(betAmount * 0.1);
                     chipsChange += bonus;
                     resultText += ` (+10% streak bonus!)`;
                 }
@@ -302,35 +328,22 @@ async function coinflipCommand(sock, chatId, message, args) {
                 resultText = '😔 *You lose!*';
             }
             
-            // Update chips
             if (betAmount > 0) {
                 const newBalance = updateUserChips(userId, chipsChange, won);
-                
-                // Update stats
                 updateCoinStats(userId, choice, result, betAmount, won);
             }
         } else {
-            // Just flip, no bet
             updateCoinStats(userId, null, result, 0, false);
         }
         
-        // Build response message
+        // Build response
         let response = `🪙 *COIN FLIP* 🪙\n\n`;
-        
-        if (choice) {
-            response += `*Your Choice:* ${choice.toUpperCase()} ${choiceEmoji}\n`;
-        }
-        
-        if (betAmount > 0) {
-            response += `*Bet:* 💰 ${formatNumber(betAmount)} chips\n`;
-        }
-        
+        if (choice) response += `*Your Choice:* ${choice.toUpperCase()} ${choiceEmoji}\n`;
+        if (betAmount > 0) response += `*Bet:* 💰 ${formatNumber(betAmount)} chips\n`;
         response += `\n*Flipping...* 🌪️🌀✨\n\n`;
         response += `*Result:* ${result.toUpperCase()}! ${resultEmoji}\n\n`;
-        
         if (choice) {
             response += `${resultText}\n`;
-            
             if (betAmount > 0) {
                 const changeSymbol = chipsChange > 0 ? '+' : '';
                 response += `${changeSymbol}${formatNumber(chipsChange)} chips\n`;
@@ -338,17 +351,15 @@ async function coinflipCommand(sock, chatId, message, args) {
             }
         }
         
-        // Add statistics
+        // User stats
         const userStats = getUserStats(userId);
         if (userStats && userStats.totalFlips > 0) {
             response += `\n📊 *Your Statistics:*\n`;
             response += `Flips: ${formatNumber(userStats.totalFlips)}\n`;
-            
             if (userStats.withChoice > 0) {
                 const winRate = ((userStats.wins / userStats.withChoice) * 100).toFixed(1);
                 response += `Win Rate: ${winRate}% (${userStats.wins}/${userStats.withChoice})\n`;
             }
-            
             if (userStats.currentStreak > 0) {
                 response += `Streak: 🔥 ${userStats.currentStreak} wins\n`;
             } else if (userStats.currentStreak < 0) {
@@ -356,18 +367,14 @@ async function coinflipCommand(sock, chatId, message, args) {
             }
         }
         
-        // Add global stats (optional)
+        // Global stats
         const allStats = loadData(COINSTATS_FILE, {});
-        let totalHeads = 0;
-        let totalTails = 0;
-        let totalFlips = 0;
-        
+        let totalHeads = 0, totalTails = 0, totalFlips = 0;
         Object.values(allStats).forEach(stats => {
             totalHeads += stats.heads;
             totalTails += stats.tails;
             totalFlips += stats.totalFlips;
         });
-        
         if (totalFlips > 0) {
             const headsPercent = ((totalHeads / totalFlips) * 100).toFixed(1);
             response += `\n🌎 *Global Stats:*\n`;
@@ -375,20 +382,13 @@ async function coinflipCommand(sock, chatId, message, args) {
             response += `Total Flips: ${formatNumber(totalFlips)}`;
         }
         
-        // Send response
-        await sock.sendMessage(chatId, { 
-            text: response
-        }, { quoted: message });
-        
+        await sock.sendMessage(chatId, { text: response }, { quoted: message });
     } catch (error) {
         console.error('Error in coinflip command:', error);
-        await sock.sendMessage(chatId, { 
-            text: '❌ Error processing coin flip. Please try again.' 
-        }, { quoted: message });
+        await sock.sendMessage(chatId, { text: '❌ Error processing coin flip. Please try again.' }, { quoted: message });
     }
 }
 
-// Statistics command
 async function coinstatsCommand(sock, chatId, message, args) {
     try {
         const userId = getUserId(message);
@@ -405,44 +405,30 @@ async function coinstatsCommand(sock, chatId, message, args) {
         
         let response = `📊 *COIN FLIP STATISTICS*\n`;
         response += `Player: ${userName}\n\n`;
-        
-        // Basic stats
         response += `🎯 *Basic Stats:*\n`;
         response += `Total Flips: ${formatNumber(userStats.totalFlips)}\n`;
         response += `Heads: ${formatNumber(userStats.heads)} (${((userStats.heads / userStats.totalFlips) * 100).toFixed(1)}%)\n`;
         response += `Tails: ${formatNumber(userStats.tails)} (${((userStats.tails / userStats.totalFlips) * 100).toFixed(1)}%)\n\n`;
-        
-        // Choice stats
         if (userStats.withChoice > 0) {
             response += `🎲 *With Choice:*\n`;
             response += `Choices Made: ${formatNumber(userStats.withChoice)}\n`;
             response += `Wins: ${formatNumber(userStats.wins)} (${((userStats.wins / userStats.withChoice) * 100).toFixed(1)}%)\n`;
             response += `Losses: ${formatNumber(userStats.losses)}\n\n`;
         }
-        
-        // Betting stats
         response += `💰 *Betting Stats:*\n`;
         response += `Current Chips: 💰 ${formatNumber(chips)}\n`;
-        
         if (userStats.wagered > 0) {
             response += `Total Wagered: 💰 ${formatNumber(userStats.wagered)}\n`;
             response += `Total Won: 💰 +${formatNumber(userStats.won)}\n`;
-            response += `Net Profit: 💰 ${userStats.won - (userStats.wagered - userStats.won) >= 0 ? '+' : ''}${formatNumber(userStats.won - (userStats.wagered - userStats.won))}\n\n`;
+            const net = userStats.won - (userStats.wagered - userStats.won);
+            response += `Net Profit: 💰 ${net >= 0 ? '+' : ''}${formatNumber(net)}\n\n`;
         }
-        
-        // Streak stats
         response += `🔥 *Streaks:*\n`;
         response += `Current Streak: `;
-        if (userStats.currentStreak > 0) {
-            response += `🔥 ${userStats.currentStreak} wins`;
-        } else if (userStats.currentStreak < 0) {
-            response += `💀 ${Math.abs(userStats.currentStreak)} losses`;
-        } else {
-            response += `⚪ None`;
-        }
+        if (userStats.currentStreak > 0) response += `🔥 ${userStats.currentStreak} wins`;
+        else if (userStats.currentStreak < 0) response += `💀 ${Math.abs(userStats.currentStreak)} losses`;
+        else response += `⚪ None`;
         response += `\nLongest Win Streak: 🔥 ${formatNumber(userStats.longestWinStreak)}\n\n`;
-        
-        // Achievements
         if (userStats.achievements && userStats.achievements.length > 0) {
             response += `🏅 *Achievements Unlocked:*\n`;
             const achievementNames = {
@@ -451,76 +437,50 @@ async function coinstatsCommand(sock, chatId, message, args) {
                 'streak5': '🔥 Hot Streak (5 wins in a row)',
                 'rich': '💰 Rich (5,000+ chips)'
             };
-            
             userStats.achievements.forEach(achievement => {
                 if (achievementNames[achievement]) {
                     response += `✅ ${achievementNames[achievement]}\n`;
                 }
             });
         }
-        
-        // Last flip
         if (userStats.lastFlip) {
             const lastFlipDate = new Date(userStats.lastFlip);
             const now = new Date();
             const diffHours = Math.floor((now - lastFlipDate) / (1000 * 60 * 60));
-            
             response += `\n⏰ *Last Flip:* `;
-            if (diffHours < 1) {
-                response += `Just now`;
-            } else if (diffHours < 24) {
-                response += `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-            } else {
-                response += `${Math.floor(diffHours / 24)} day${Math.floor(diffHours / 24) > 1 ? 's' : ''} ago`;
-            }
+            if (diffHours < 1) response += `Just now`;
+            else if (diffHours < 24) response += `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+            else response += `${Math.floor(diffHours / 24)} day${Math.floor(diffHours / 24) > 1 ? 's' : ''} ago`;
         }
         
-        await sock.sendMessage(chatId, { 
-            text: response 
-        }, { quoted: message });
-        
+        await sock.sendMessage(chatId, { text: response }, { quoted: message });
     } catch (error) {
         console.error('Error in coinstats command:', error);
-        await sock.sendMessage(chatId, { 
-            text: '❌ Error fetching statistics.' 
-        }, { quoted: message });
+        await sock.sendMessage(chatId, { text: '❌ Error fetching statistics.' }, { quoted: message });
     }
 }
 
-// Daily bonus command
 async function coindailyCommand(sock, chatId, message) {
     try {
         const userId = getUserId(message);
-        const userName = await getDisplayName(sock, userId, chatId);
-        
         const result = claimDailyBonus(userId);
-        
         if (result.success) {
             const response = `🎁 *DAILY BONUS*\n\n${result.message}\n\nNew Balance: 💰 ${formatNumber(result.newBalance)} chips\n\nCome back tomorrow for more!`;
-            await sock.sendMessage(chatId, { 
-                text: response 
-            }, { quoted: message });
+            await sock.sendMessage(chatId, { text: response }, { quoted: message });
         } else {
-            await sock.sendMessage(chatId, { 
-                text: `🎁 *DAILY BONUS*\n\n${result.message}\n\nCome back tomorrow!` 
-            }, { quoted: message });
+            await sock.sendMessage(chatId, { text: `🎁 *DAILY BONUS*\n\n${result.message}\n\nCome back tomorrow!` }, { quoted: message });
         }
-        
     } catch (error) {
         console.error('Error in coindaily command:', error);
-        await sock.sendMessage(chatId, { 
-            text: '❌ Error claiming daily bonus.' 
-        }, { quoted: message });
+        await sock.sendMessage(chatId, { text: '❌ Error claiming daily bonus.' }, { quoted: message });
     }
 }
 
-// Leaderboard command
 async function coinleaderboardCommand(sock, chatId, message) {
     try {
         const chipsData = loadData(CHIPS_FILE, {});
         const statsData = loadData(COINSTATS_FILE, {});
         
-        // Get top 10 by chips
         const topPlayers = Object.entries(chipsData)
             .filter(([userId, data]) => data.chips > 0)
             .sort((a, b) => b[1].chips - a[1].chips)
@@ -534,79 +494,56 @@ async function coinleaderboardCommand(sock, chatId, message) {
         }
         
         let response = `🏆 *COIN FLIP LEADERBOARD* 🏆\n\n`;
-        
-        // Top players by chips
         response += `💰 *Top by Chips:*\n`;
         for (let i = 0; i < topPlayers.length; i++) {
             const [userId, data] = topPlayers[i];
             const userStats = statsData[userId];
-            const profit = data.chips - 1000; // Starting chips were 1000
-            
+            const profit = data.chips - 1000;
             response += `${i + 1}. `;
             if (i === 0) response += `👑 `;
             else if (i === 1) response += `🥈 `;
             else if (i === 2) response += `🥉 `;
-            
             response += `💰 ${formatNumber(data.chips)} `;
             response += `(${profit >= 0 ? '+' : ''}${formatNumber(profit)})\n`;
         }
         
-        // Additional stats
         const allStats = Object.values(statsData);
         if (allStats.length > 0) {
-            // Highest win rate (min 10 choices)
             const qualified = allStats.filter(s => s.withChoice >= 10);
             if (qualified.length > 0) {
                 const bestAccuracy = qualified.sort((a, b) => (b.wins / b.withChoice) - (a.wins / a.withChoice))[0];
                 const winRate = ((bestAccuracy.wins / bestAccuracy.withChoice) * 100).toFixed(1);
                 response += `\n🎯 *Best Accuracy:* ${winRate}% (${bestAccuracy.wins}/${bestAccuracy.withChoice})`;
             }
-            
-            // Longest streak
             const bestStreak = allStats.sort((a, b) => b.longestWinStreak - a.longestWinStreak)[0];
             if (bestStreak.longestWinStreak > 0) {
                 response += `\n🔥 *Longest Streak:* ${bestStreak.longestWinStreak} wins`;
             }
-            
-            // Most flips
             const mostFlips = allStats.sort((a, b) => b.totalFlips - a.totalFlips)[0];
             response += `\n🎰 *Most Active:* ${formatNumber(mostFlips.totalFlips)} flips`;
         }
         
-        // Global totals
-        let totalChips = 0;
-        let totalFlips = 0;
-        let totalHeads = 0;
-        
+        let totalChips = 0, totalFlips = 0, totalHeads = 0;
         Object.values(chipsData).forEach(data => totalChips += data.chips);
         Object.values(statsData).forEach(data => {
             totalFlips += data.totalFlips;
             totalHeads += data.heads;
         });
-        
         const headsPercent = totalFlips > 0 ? ((totalHeads / totalFlips) * 100).toFixed(1) : '0.0';
-        
         response += `\n\n🌎 *Global Statistics:*`;
         response += `\nTotal Players: ${Object.keys(chipsData).length}`;
         response += `\nTotal Chips in Play: 💰 ${formatNumber(totalChips)}`;
         response += `\nTotal Flips: ${formatNumber(totalFlips)}`;
         response += `\nHeads/Tails Ratio: ${headsPercent}% / ${(100 - headsPercent).toFixed(1)}%`;
-        
         response += `\n\nUse \`.coinstats\` for your personal statistics!`;
         
-        await sock.sendMessage(chatId, { 
-            text: response 
-        }, { quoted: message });
-        
+        await sock.sendMessage(chatId, { text: response }, { quoted: message });
     } catch (error) {
         console.error('Error in coinleaderboard command:', error);
-        await sock.sendMessage(chatId, { 
-            text: '❌ Error fetching leaderboard.' 
-        }, { quoted: message });
+        await sock.sendMessage(chatId, { text: '❌ Error fetching leaderboard.' }, { quoted: message });
     }
 }
 
-// Help command
 async function coinhelpCommand(sock, chatId, message) {
     const response = `🪙 *COIN FLIP HELP* 🪙\n\n` +
         `*Basic Commands:*\n` +
@@ -614,32 +551,26 @@ async function coinhelpCommand(sock, chatId, message) {
         `• \`.coinflip heads\` - Choose heads\n` +
         `• \`.coinflip tails\` - Choose tails\n` +
         `• \`.coinflip heads 100\` - Bet 100 chips on heads\n\n` +
-        
         `*Statistics & Info:*\n` +
         `• \`.coinstats\` - Your statistics\n` +
         `• \`.coinleaderboard\` - Top players\n` +
         `• \`.coindaily\` - Claim 100 free chips daily\n` +
         `• \`.coinhelp\` - This help menu\n\n` +
-        
         `*Game Rules:*\n` +
         `• Start with 1,000 chips\n` +
         `• Min bet: 10 chips\n` +
         `• Max bet: 500 chips\n` +
         `• Payout: 1:1 (win what you bet)\n` +
         `• Streak bonus: 10% extra for 5+ wins\n\n` +
-        
         `*Achievements:*\n` +
         `🏅 Unlock achievements by playing!\n\n` +
-        
         `*Example:*\n` +
         `\`.coinflip tails 50\` - Bet 50 chips on tails`;
     
-    await sock.sendMessage(chatId, { 
-        text: response 
-    }, { quoted: message });
+    await sock.sendMessage(chatId, { text: response }, { quoted: message });
 }
 
-// Export all commands
+// Export
 module.exports = {
     coinflipCommand,
     coinstatsCommand,
