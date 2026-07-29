@@ -1,105 +1,113 @@
- const axios = require('axios');
-const fetch = require('node-fetch');
+//════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
+//                                                                                                                                                                                        //
+//                                                             𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓                                                                                                     //
+//                                                                                                                                                                                        //
+//                                                                  𝐕 : 1.0.0                                                                                                             //
+//                                                                                                                                                                                        //
+//                                                                 𝐂𝐎𝐏𝐘𝐑𝐈𝐆𝐇𝐓 2026                                                                                                        //
+//                                                                                                                                                                                        //
+//════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
+//* 
+//  * command : ai
+//  * description : Chat with AI bot
+//  * Credit To  DEX SHYAM TECH
+//  * © 2026 𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓.
+// ⛥┌┤
+// */
 
-async function aiCommand(sock, chatId, message) {
-    try {
-        const text = message.message?.conversation || message.message?.extendedTextMessage?.text;
-        
-        if (!text) {
-            return await sock.sendMessage(chatId, { 
-                text: "*Please provide a question after .gpt or .gemini*\n\n*Example: .gpt write a basic html code*"
-            }, {
-                quoted: message
-            });
-        }
+const axios = require('axios');
+const settings = require('../settings');
 
-        // Get the command and query
-        const parts = text.split(' ');
-        const command = parts[0].toLowerCase();
-        const query = parts.slice(1).join(' ').trim();
-
-        if (!query) {
-            return await sock.sendMessage(chatId, { 
-                text: "*Please provide a question after .gpt or .gemini*"
-            }, {quoted:message});
-        }
-
-        try {
-            // Show processing message
-            await sock.sendMessage(chatId, {
-                react: { text: '🤖', key: message.key }
-            });
-
-            if (command === '.gpt') {
-                // Call the GPT API
-                const response = await axios.get(`https://zellapi.autos/ai/chatbot?text=${encodeURIComponent(query)}`);
-                
-                if (response.data && response.data.status && response.data.result) {
-                    const answer = response.data.result;
-                    await sock.sendMessage(chatId, {
-                        text: answer
-                    }, {
-                        quoted: message
-                    });
-                    
-                } else {
-                    throw new Error('Invalid response from API');
-                }
-            } else if (command === '.gemini') {
-                const apis = [
-                    `https://vapis.my.id/api/gemini?q=${encodeURIComponent(query)}`,
-                    `https://api.siputzx.my.id/api/ai/gemini-pro?content=${encodeURIComponent(query)}`,
-                    `https://api.ryzendesu.vip/api/ai/gemini?text=${encodeURIComponent(query)}`,
-                    `https://zellapi.autos/ai/chatbot?text=${encodeURIComponent(query)}`,
-                    `https://api.giftedtech.my.id/api/ai/geminiai?apikey=gifted&q=${encodeURIComponent(query)}`,
-                    `https://api.giftedtech.my.id/api/ai/geminiaipro?apikey=gifted&q=${encodeURIComponent(query)}`
-                ];
-
-                for (const api of apis) {
-                    try {
-                        const response = await fetch(api);
-                        const data = await response.json();
-
-                        if (data.message || data.data || data.answer || data.result) {
-                            const answer = data.message || data.data || data.answer || data.result;
-                            await sock.sendMessage(chatId, {
-                                text: answer
-                            }, {
-                                quoted: message
-                            });
-                            
-                            return;
-                        }
-                    } catch (e) {
-                        continue;
-                    }
-                }
-                throw new Error('All Gemini APIs failed');
-            }
-        } catch (error) {
-            console.error('API Error:', error);
-            await sock.sendMessage(chatId, {
-                text: "*❌ Failed to get response. Please try again later.*",
-                contextInfo: {
-                    mentionedJid: [message.key.participant || message.key.remoteJid],
-                    quotedMessage: message.message
-                }
-            }, {
-                quoted: message
-            });
-        }
-    } catch (error) {
-        console.error('AI Command Error:', error);
-        await sock.sendMessage(chatId, {
-            text: "*❌ An error occurred. Please try again later.*",
-            contextInfo: {
-                mentionedJid: [message.key.participant || message.key.remoteJid],
-                quotedMessage: message.message
-            }
-        }, {
-            quoted: message
-        });
+// ✅ Multiple AI APIs with fallback
+const AI_APIS = [
+    {
+        name: 'ZellAI',
+        url: (query) => `https://zellapi.autos/ai/chatbot?text=${encodeURIComponent(query)}`,
+        timeout: 10000 // 10 seconds timeout
+    },
+    {
+        name: 'Gpt4o',
+        url: (query) => `https://vihangayt.me/api/gpt4?q=${encodeURIComponent(query)}`,
+        timeout: 12000
+    },
+    {
+        name: 'Blackbox',
+        url: (query) => `https://api.ryzen-3.space/api/blackbox?text=${encodeURIComponent(query)}`,
+        timeout: 15000
     }
-}
+];
 
-module.exports = aiCommand; 
+module.exports = {
+    name: 'ai',
+    category: 'Utility',
+    description: 'Chat with AI bot',
+    usage: '.ai <your question>',
+    execute: async (dexbotInc, message, args, sender, from) => {
+        try {
+            // ✅ Check if query is provided
+            const prefix = settings.prefix || '.';
+            let query = '';
+            if (message.body) {
+                const parts = message.body.trim().split(/\s+/);
+                if (parts.length > 1) {
+                    query = parts.slice(1).join(' ');
+                }
+            }
+
+            if (!query) {
+                return await dexbotInc.sendMessage(from, {
+                    text: `❌ Please provide a question.\nUsage: ${prefix}ai <your question>`
+                });
+            }
+
+            // ✅ Send typing indicator
+            await dexbotInc.sendPresenceUpdate('composing', from);
+
+            // ✅ Try each API with timeout
+            let lastError = null;
+            for (const api of AI_APIS) {
+                try {
+                    const response = await axios.get(api.url(query), {
+                        timeout: api.timeout || 10000,
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                        }
+                    });
+
+                    let reply = null;
+                    // ✅ Parse different API response formats
+                    if (api.name === 'ZellAI') {
+                        reply = response.data?.result || response.data?.message || response.data?.response || null;
+                    } else if (api.name === 'Gpt4o') {
+                        reply = response.data?.result || response.data?.message || response.data?.response || null;
+                    } else if (api.name === 'Blackbox') {
+                        reply = response.data?.result || response.data?.response || response.data?.message || null;
+                    }
+
+                    if (reply) {
+                        // ✅ Success - send reply
+                        await dexbotInc.sendMessage(from, {
+                            text: `🤖 *AI Response:*\n\n${reply}\n\n🔹 Powered by: ${api.name}`
+                        });
+                        return; // ✅ Exit successfully
+                    }
+                } catch (err) {
+                    lastError = err;
+                    console.warn(`⚠️ ${api.name} API failed:`, err.message);
+                    continue; // Try next API
+                }
+            }
+
+            // ✅ All APIs failed
+            await dexbotInc.sendMessage(from, {
+                text: `❌ All AI APIs are currently unavailable.\nPlease try again later.\n\nLast error: ${lastError?.message || 'Unknown error'}`
+            });
+
+        } catch (error) {
+            console.error('❌ AI command error:', error.message);
+            await dexbotInc.sendMessage(from, {
+                text: `❌ Error processing AI request. Please try again.\n\nError: ${error.message}`
+            });
+        }
+    }
+};

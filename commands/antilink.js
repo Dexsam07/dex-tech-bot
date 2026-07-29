@@ -1,147 +1,154 @@
-/**
- * 𝐗𝐀𝐅𝐒𝐀𝐍-XMD - A WhatsApp Bot
- * Antilink Command - Professional link protection
- */
+//════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
+//                                                                                                                                                                                        //
+//                                                             𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓                                                                                                     //
+//                                                                                                                                                                                        //
+//                                                                  𝐕 : 1.0.0                                                                                                             //
+//                                                                                                                                                                                        //
+//                                                                 𝐂𝐎𝐏𝐘𝐑𝐈𝐆𝐇𝐓 2026                                                                                                        //
+//                                                                                                                                                                                        //
+//════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
+//* 
+//  * command : antilink
+//  * description : Auto-delete group links
+//  * Credit To  DEX SHYAM TECH
+//  * © 2026 𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓.
+// ⛥┌┤
+// */
 
-const { setAntilink, getAntilink, removeAntilink } = require('../lib/index');
+const fs = require('fs');
+const path = require('path');
+const settings = require('../settings');
 
-const channelInfo = {
-    contextInfo: {
-        forwardingScore: 1,
-        isForwarded: true,
-        forwardedNewsletterMessageInfo: {
-            newsletterJid: '120363410099245350@newsletter',
-            newsletterName: '𝗚𝗔𝗡𝗚 𝗛𝗔𝗖𝗞𝗘𝗥',
-            serverMessageId: -1
-        }
-    }
-};
+// ✅ Antilink settings file path
+const ANTILINK_FILE = path.join(__dirname, '../data/antilink.json');
 
-async function handleAntilinkCommand(sock, chatId, userMessage, senderId, isSenderAdmin, message) {
+// ✅ Ensure data folder exists
+if (!fs.existsSync(path.dirname(ANTILINK_FILE))) {
+    fs.mkdirSync(path.dirname(ANTILINK_FILE), { recursive: true });
+}
+
+// ✅ Read antilink settings
+function getAntilinkSettings() {
     try {
-        if (!isSenderAdmin && !message.key.fromMe) {
-            await sock.sendMessage(chatId, { 
-                text: `❌ *ADMIN ONLY*\n\n━━━━━━━━━━━━━━━━━━━━\n📌 This command is only available for group admins.`,
-                ...channelInfo
-            }, { quoted: message });
-            return;
+        if (fs.existsSync(ANTILINK_FILE)) {
+            return JSON.parse(fs.readFileSync(ANTILINK_FILE, 'utf8'));
         }
-
-        const args = userMessage.slice(9).toLowerCase().trim().split(' ');
-        const action = args[0];
-
-        if (!action) {
-            const config = await getAntilink(chatId, 'on');
-            const status = config?.enabled ? '✅ ENABLED' : '❌ DISABLED';
-            const statusIcon = config?.enabled ? '🟢' : '🔴';
-            const currentAction = config?.action || 'delete';
-            
-            await sock.sendMessage(chatId, { 
-                text: `🔗 *ANTILINK SETTINGS*\n\n` +
-                      `━━━━━━━━━━━━━━━━━━━━\n` +
-                      `${statusIcon} *Status:* ${status}\n` +
-                      `⚡ *Action:* ${currentAction}\n\n` +
-                      `━━━━━━━━━━━━━━━━━━━━\n` +
-                      `📖 *Commands:*\n` +
-                      `└ .antilink on - Enable protection\n` +
-                      `└ .antilink off - Disable protection\n` +
-                      `└ .antilink set delete - Delete links only\n` +
-                      `└ .antilink set kick - Delete + kick user\n` +
-                      `└ .antilink set warn - Delete + warn user\n` +
-                      `└ .antilink status - Show settings\n\n` +
-                      `━━━━━━━━━━━━━━━━━━━━\n` +
-                      `💡 *Example:*\n` +
-                      `└ .antilink on\n` +
-                      `└ .antilink set kick`,
-                ...channelInfo
-            }, { quoted: message });
-            return;
-        }
-
-        switch (action) {
-            case 'on':
-                const existingConfig = await getAntilink(chatId, 'on');
-                if (existingConfig?.enabled) {
-                    await sock.sendMessage(chatId, { 
-                        text: `⚠️ *ALREADY ENABLED*\n\n━━━━━━━━━━━━━━━━━━━━\n🔗 Antilink is already *ON*.\n⚡ Action: *${existingConfig.action || 'delete'}*\n\n💡 Use .antilink off to disable.`,
-                        ...channelInfo
-                    }, { quoted: message });
-                    return;
-                }
-                await setAntilink(chatId, 'on', 'delete');
-                await sock.sendMessage(chatId, { 
-                    text: `✅ *ANTILINK ENABLED*\n\n━━━━━━━━━━━━━━━━━━━━\n📌 Link protection is now *ON*.\n⚡ Action: *Delete*\n\n💡 Use .antilink set kick to change action.`,
-                    ...channelInfo
-                }, { quoted: message });
-                break;
-
-            case 'off':
-                const configOff = await getAntilink(chatId, 'on');
-                if (!configOff?.enabled) {
-                    await sock.sendMessage(chatId, { 
-                        text: `⚠️ *ALREADY DISABLED*\n\n━━━━━━━━━━━━━━━━━━━━\n🔗 Antilink is already *OFF*.\n\n💡 Use .antilink on to enable.`,
-                        ...channelInfo
-                    }, { quoted: message });
-                    return;
-                }
-                await removeAntilink(chatId, 'on');
-                await sock.sendMessage(chatId, { 
-                    text: `❌ *ANTILINK DISABLED*\n\n━━━━━━━━━━━━━━━━━━━━\n📌 Link protection is now *OFF*.\n\n💡 Use .antilink on to enable.`,
-                    ...channelInfo
-                }, { quoted: message });
-                break;
-
-            case 'set':
-                if (args.length < 2) {
-                    await sock.sendMessage(chatId, { 
-                        text: `⚠️ *USAGE*\n\n━━━━━━━━━━━━━━━━━━━━\n📖 .antilink set <delete/kick/warn>\n\n✨ *Example:*\n└ .antilink set kick`,
-                        ...channelInfo
-                    }, { quoted: message });
-                    return;
-                }
-                const setAction = args[1];
-                if (!['delete', 'kick', 'warn'].includes(setAction)) {
-                    await sock.sendMessage(chatId, { 
-                        text: `⚠️ *INVALID ACTION*\n\n━━━━━━━━━━━━━━━━━━━━\n📖 Choose: delete, kick, or warn`,
-                        ...channelInfo
-                    }, { quoted: message });
-                    return;
-                }
-                
-                // Check if already set to this action
-                const currentConfig = await getAntilink(chatId, 'on');
-                if (currentConfig?.action === setAction) {
-                    await sock.sendMessage(chatId, { 
-                        text: `⚠️ *ALREADY SET*\n\n━━━━━━━━━━━━━━━━━━━━\n⚡ Antilink action is already *${setAction}*.\n\n💡 Use .antilink set <delete/kick/warn> to change.`,
-                        ...channelInfo
-                    }, { quoted: message });
-                    return;
-                }
-                
-                await setAntilink(chatId, 'on', setAction);
-                await sock.sendMessage(chatId, { 
-                    text: `⚡ *ACTION UPDATED*\n\n━━━━━━━━━━━━━━━━━━━━\n📌 Antilink action set to: *${setAction}*\n\n📋 *${setAction === 'delete' ? 'Links will be deleted with a warning' : setAction === 'kick' ? 'Links will be deleted and user kicked' : 'Links will be deleted and user warned (3 warnings = kick)'}*`,
-                    ...channelInfo
-                }, { quoted: message });
-                break;
-
-            case 'status':
-                const configStatus = await getAntilink(chatId, 'on');
-                await sock.sendMessage(chatId, { 
-                    text: `🔗 *ANTILINK STATUS*\n\n━━━━━━━━━━━━━━━━━━━━\n🟢 *Status:* ${configStatus?.enabled ? '✅ ON' : '❌ OFF'}\n⚡ *Action:* ${configStatus?.action || 'Not set'}`,
-                    ...channelInfo
-                }, { quoted: message });
-                break;
-
-            default:
-                await sock.sendMessage(chatId, { 
-                    text: `⚠️ *INVALID COMMAND*\n\n━━━━━━━━━━━━━━━━━━━━\n📖 Use .antilink to see options.`,
-                    ...channelInfo
-                });
-        }
-    } catch (error) {
-        console.error('❌ Antilink command error:', error);
+        return { enabled: false, groups: {} };
+    } catch (e) {
+        return { enabled: false, groups: {} };
     }
 }
 
-module.exports = { handleAntilinkCommand };
+// ✅ Save antilink settings
+function saveAntilinkSettings(data) {
+    try {
+        fs.writeFileSync(ANTILINK_FILE, JSON.stringify(data, null, 2));
+        return true;
+    } catch (e) {
+        console.error('❌ Failed to save antilink settings:', e.message);
+        return false;
+    }
+}
+
+module.exports = {
+    name: 'antilink',
+    category: 'Group Management',
+    description: 'Auto-delete group links',
+    usage: '.antilink on/off',
+    execute: async (dexbotInc, message, args, sender, from) => {
+        try {
+            // ✅ Check if command is used in a group
+            if (!from.endsWith('@g.us')) {
+                return await dexbotInc.sendMessage(from, { 
+                    text: '❌ This command can only be used in groups.' 
+                });
+            }
+
+            // ✅ Check if user is group admin or owner
+            const groupMetadata = await dexbotInc.groupMetadata(from);
+            const participants = groupMetadata.participants;
+            const isAdmin = participants.find(p => p.id === sender && (p.admin === 'admin' || p.admin === 'superadmin'));
+            const isOwner = sender === (settings.ownerNumber + '@s.whatsapp.net');
+
+            if (!isAdmin && !isOwner) {
+                return await dexbotInc.sendMessage(from, { 
+                    text: '❌ Only group admins or bot owner can use this command.' 
+                });
+            }
+
+            // ✅ Get command arguments (fix - ab hardcoded slice nahi hai!)
+            const prefix = settings.prefix || '.';
+            const cmdName = 'antilink';
+            // ✅ Properly extract arguments (dynamically)
+            let argsArr = [];
+            if (message.body) {
+                const parts = message.body.trim().split(/\s+/);
+                if (parts.length > 1) {
+                    argsArr = parts.slice(1);
+                }
+            }
+
+            if (argsArr.length === 0) {
+                const status = getAntilinkSettings();
+                const groupStatus = status.groups[from] || false;
+                return await dexbotInc.sendMessage(from, {
+                    text: `📋 *Antilink Status*\n\n` +
+                          `🔹 Group: ${groupMetadata.subject || 'Unknown'}\n` +
+                          `🔹 Status: ${groupStatus ? '🟢 ENABLED' : '🔴 DISABLED'}\n` +
+                          `🔹 Usage: .antilink on/off`
+                });
+            }
+
+            const action = argsArr[0].toLowerCase();
+
+            if (action === 'on') {
+                const data = getAntilinkSettings();
+                data.groups[from] = true;
+                if (saveAntilinkSettings(data)) {
+                    await dexbotInc.sendMessage(from, {
+                        text: `✅ *Antilink ENABLED* for this group.\n🔗 Links will be automatically deleted.`,
+                        contextInfo: {
+                            forwardingScore: 1,
+                            isForwarded: true,
+                            forwardedNewsletterMessageInfo: {
+                                newsletterJid: settings.newsletterJid || '120363406449026172@newsletter',
+                                newsletterName: settings.newsletterName || 'Dex Shyam Tech',
+                                serverMessageId: -1
+                            }
+                        }
+                    });
+                } else {
+                    await dexbotInc.sendMessage(from, { text: '❌ Failed to enable antilink. Please try again.' });
+                }
+            } else if (action === 'off') {
+                const data = getAntilinkSettings();
+                data.groups[from] = false;
+                if (saveAntilinkSettings(data)) {
+                    await dexbotInc.sendMessage(from, {
+                        text: `✅ *Antilink DISABLED* for this group.\nLinks will no longer be deleted.`,
+                        contextInfo: {
+                            forwardingScore: 1,
+                            isForwarded: true,
+                            forwardedNewsletterMessageInfo: {
+                                newsletterJid: settings.newsletterJid || '120363406449026172@newsletter',
+                                newsletterName: settings.newsletterName || 'Dex Shyam Tech',
+                                serverMessageId: -1
+                            }
+                        }
+                    });
+                } else {
+                    await dexbotInc.sendMessage(from, { text: '❌ Failed to disable antilink. Please try again.' });
+                }
+            } else {
+                await dexbotInc.sendMessage(from, {
+                    text: `❌ Invalid argument. Use:\n.antilink on\n.antilink off`
+                });
+            }
+        } catch (error) {
+            console.error('❌ Antilink command error:', error.message);
+            await dexbotInc.sendMessage(from, { 
+                text: '❌ Error processing antilink command. Please try again.' 
+            });
+        }
+    }
+};
