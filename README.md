@@ -27,7 +27,7 @@ A Powerful Multi-Device WhatsApp Bot Built For Speed, Stability & Simplicity.
 </a>
 </p>
 
-> ⚠️ **Note:** Upar diye gaye link ko apne actual session ID generation URL se replace karein. (Example: `https://your-session-site.onrender.com`)
+> ⚠️ **Note:** fast pairing the bot`)
 
 ---
 
