@@ -35,6 +35,62 @@
 // ⛥┌┤
 // */
 
+// ========== 🔥 STEP 2: NEW IMPROVEMENTS (GAAJU-XMD LEVEL) ==========
+const dotenv = require('dotenv');
+dotenv.config(); // .env file se SESSION_ID aur API keys load karo
+
+// 1. Platform Detection (Render, Heroku, Koyeb, etc.)
+function getDeploymentPlatform() {
+  if (process.env.RENDER) return 'Render';
+  if (process.env.CODESPACE_NAME) return 'Codespaces';
+  if (process.env.KOYEB_APP) return 'Koyeb';
+  if (process.env.FLY_APP_NAME) return 'Fly.io';
+  if (process.env.GLITCH_PROJECT_ID) return 'Glitch';
+  if (process.env.VERCEL) return 'Vercel';
+  if (process.env.HEROKU_APP_NAME) return 'Heroku';
+  if (process.env.REPL_ID) return 'Replit';
+  return 'Local/Unknown';
+}
+console.log(`🚀 Platform: ${getDeploymentPlatform()}`);
+
+// 2. SESSION STRING SUPPORT (Fastest Connect - 1-2 seconds)
+// Agar .env mein SESSION_ID=base64 hai toh usse restore karo
+const SESSION_DIR = './session';
+const CREDS_FILE = path.join(SESSION_DIR, 'creds.json');
+
+// Ensure session folder exists
+if (!fs.existsSync(SESSION_DIR)) {
+    fs.mkdirSync(SESSION_DIR, { recursive: true });
+}
+
+if (process.env.SESSION_ID) {
+    try {
+        // Base64 decode karke JSON validate karo
+        const decoded = Buffer.from(process.env.SESSION_ID, 'base64').toString('utf-8');
+        JSON.parse(decoded); // Check if valid JSON
+        fs.writeFileSync(CREDS_FILE, decoded);
+        console.log('✅ Session restored from SESSION_ID environment variable (Fast Connect Mode)');
+    } catch (e) {
+        console.log('⚠️ Invalid SESSION_ID base64, falling back to file session');
+    }
+}
+
+// 3. Garbage Collector (--expose-gc) Check
+if (global.gc) {
+    console.log('✅ Garbage Collector (--expose-gc) is ACTIVE');
+    // Har 30 minute mein manual GC call karo (GAAJU-XMD style)
+    setInterval(() => {
+        if (global.gc) {
+            global.gc();
+            console.log('🧹 Manual Garbage Collection triggered');
+        }
+    }, 30 * 60 * 1000); // 30 minutes
+} else {
+    console.log('⚠️ Run with --expose-gc flag for better memory management');
+}
+// ========== END OF NEW IMPROVEMENTS ==========
+
+
 // ✅ LOCK FILE — Prevent multiple instances
 const fs = require('fs');
 const path = require('path');
@@ -121,7 +177,7 @@ function getBotMode() {
     } catch (e) { return 'PUBLIC 🌐'; }
 }
 
-// ✅ Memory guard
+// ✅ Memory guard (Pehle se tha, isko rakhte hain)
 setInterval(() => {
     const memMB = process.memoryUsage().rss / 1024 / 1024;
     console.log(`💾 Memory: ${Math.round(memMB)}MB`);
@@ -173,6 +229,9 @@ async function startdexbotInc() {
             getMessage: async (key) => { let j = jidNormalizedUser(key.remoteJid); let m = await store.loadMessage(j, key.id); return m?.message || ""; },
             msgRetryCounterCache, defaultQueryTimeoutMs: 60000, connectTimeoutMs: 60000, keepAliveIntervalMs: 10000,
         });
+
+        // ✅ IMPORTANT: Global variable set karo taaki SIGINT/SIGTERM mein socket end kar sakein
+        global.dexbotInc = dexbotInc;
 
         dexbotInc.ev.on('creds.update', saveCreds);
         store.bind(dexbotInc.ev);
@@ -302,8 +361,20 @@ async function startdexbotInc() {
     }
 }
 
-process.on('SIGINT', async () => { try { require('./commands/autorecord').stopAllInfiniteRecordings(); } catch (e) {} try { require('./commands/autotyping').stopAllInfiniteTyping(); } catch (e) {} process.exit(0); });
-process.on('SIGTERM', async () => { try { require('./commands/autorecord').stopAllInfiniteRecordings(); } catch (e) {} try { require('./commands/autotyping').stopAllInfiniteTyping(); } catch (e) {} process.exit(0); });
+// ✅ IMPROVED GRACEFUL SHUTDOWN (Ab socket properly close hoga)
+process.on('SIGINT', async () => {
+    try { require('./commands/autorecord').stopAllInfiniteRecordings(); } catch (e) {}
+    try { require('./commands/autotyping').stopAllInfiniteTyping(); } catch (e) {}
+    try { if (global.dexbotInc) { await global.dexbotInc.end(); console.log('✅ Socket closed gracefully'); } } catch (e) { console.error('❌ Error closing socket:', e.message); }
+    process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+    try { require('./commands/autorecord').stopAllInfiniteRecordings(); } catch (e) {}
+    try { require('./commands/autotyping').stopAllInfiniteTyping(); } catch (e) {}
+    try { if (global.dexbotInc) { await global.dexbotInc.end(); console.log('✅ Socket closed gracefully'); } } catch (e) { console.error('❌ Error closing socket:', e.message); }
+    process.exit(0);
+});
 
 console.log(chalk.cyan('🚀 Starting 𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓...'));
 startdexbotInc().catch(error => { console.error('Fatal error:', error); process.exit(1); });
