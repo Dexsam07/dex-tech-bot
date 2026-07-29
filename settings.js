@@ -19,7 +19,7 @@
 //* 
 //  * project_name : 𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓
 //  * author : MIDNIGHT CYBER RIDER
-//  * youtube : https://www.youtube.com/dex_shyam_tech
+//  * youtube : https://www.youtube.com/@dex_shyam_tech
 //  * description : 𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓 ,A Multi-Device whatsapp user bot.
 //*
 //*
@@ -50,7 +50,7 @@ module.exports = {
     botName: "𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓",
     botOwner: "Shyam Choudhari",
     ownerNumber: process.env.OWNER_NUMBER || "917384287404",
-    prefix: process.env.PREFIX || "",
+    prefix: process.env.PREFIX || ".",
     
     // ===================== TIMEZONE (INDIA) =====================
     timezone: process.env.TIMEZONE || "Asia/Kolkata",  // India timezone fixed
