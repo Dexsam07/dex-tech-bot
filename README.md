@@ -81,7 +81,7 @@ A Powerful Multi-Device WhatsApp Bot Built For Speed, Stability & Simplicity.
 ## 📺 DEPLOYMENT VIDEO
 
 <p align="center">
-<a href="https://youtu.be/JV4vcawI6fI?si=S4iAnuW5Imlbo94T-">
+<a href="https://youtu.be/Hmp17yyU9Xc?si=t0pLNMJUBt8Zq1EU">
 <img src="https://img.shields.io/badge/WATCH_DEPLOYMENT_VIDEO-red?style=for-the-badge&logo=youtube&logoColor=white">
 </a>
 </p>
@@ -91,10 +91,10 @@ A Powerful Multi-Device WhatsApp Bot Built For Speed, Stability & Simplicity.
 ## 📢 COMMUNITY
 
 <p align="center">
-<a href="https://chat.whatsapp.com/K1CZsGzSk6t8Rw4t81fHEI">
+<a href="https://chat.whatsapp.com/Fu8Ck4TetM8BX902ZEWVIR?s=cl&p=a&ilr=4&amv=1">
 <img src="https://img.shields.io/badge/JOIN_WHATSAPP_GROUP-black?style=for-the-badge&logo=whatsapp&logoColor=cyan">
 </a>
-<a href="https://whatsapp.com/channel/0029VbBvGgyFsn0alyIDjw0z">
+<a href="https://whatsapp.com/channel/0029VbBgXTsKwqSKZKy38w2o">
 <img src="https://img.shields.io/badge/JOIN_CHANNEL-cyan?style=for-the-badge&logo=whatsapp&logoColor=black">
 </a>
 </p>
@@ -131,7 +131,7 @@ Make sure you have Node.js v18+ installed.
 <a href="https://github.com/Dexsam07">
 <img src="https://img.shields.io/badge/GITHUB-Dexsam07-cyan?style=for-the-badge&logo=github&logoColor=black">
 </a>
-<a href="https://wa.me/2348069675806">
+<a href="https://wa.me/917384287404">
 <img src="https://img.shields.io/badge/WHATSAPP-Dexsam07-black?style=for-the-badge&logo=whatsapp&logoColor=cyan">
 </a>
 </p>
