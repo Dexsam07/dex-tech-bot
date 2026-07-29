@@ -1,0 +1,5 @@
+{
+  "name": "dextech",
+  "image": "node:latest",
+  "postCreateCommand": "npm install"
+}
