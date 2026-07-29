@@ -27,7 +27,7 @@ A Powerful Multi-Device WhatsApp Bot Built For Speed, Stability & Simplicity.
 </a>
 </p>
 
-> ⚠️ **Note:** fast pairing the bot`)
+> 🪀 **Note:** fast pairing the bot`)
 
 ---
 
