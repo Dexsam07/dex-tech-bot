@@ -35,6 +35,11 @@
 // ⛥┌┤
 // */
 
+// ========== 🔥 FIX: Import fs and path at the very top ==========
+const fs = require('fs');
+const path = require('path');
+// ================================================================
+
 // ========== 🔥 STEP 2: NEW IMPROVEMENTS (GAAJU-XMD LEVEL) ==========
 const dotenv = require('dotenv');
 dotenv.config(); // .env file se SESSION_ID aur API keys load karo
@@ -54,68 +59,88 @@ function getDeploymentPlatform() {
 console.log(`🚀 Platform: ${getDeploymentPlatform()}`);
 
 // 2. SESSION STRING SUPPORT (Fastest Connect - 1-2 seconds)
-// Agar .env mein SESSION_ID=base64 hai toh usse restore karo
 const SESSION_DIR = './session';
 const CREDS_FILE = path.join(SESSION_DIR, 'creds.json');
 
-// Ensure session folder exists
 if (!fs.existsSync(SESSION_DIR)) {
     fs.mkdirSync(SESSION_DIR, { recursive: true });
 }
 
 if (process.env.SESSION_ID) {
     try {
-        // Base64 decode karke JSON validate karo
         const decoded = Buffer.from(process.env.SESSION_ID, 'base64').toString('utf-8');
-        JSON.parse(decoded); // Check if valid JSON
+        JSON.parse(decoded);
         fs.writeFileSync(CREDS_FILE, decoded);
-        console.log('✅ Session restored from SESSION_ID environment variable (Fast Connect Mode)');
+        console.log('✅ Session restored from SESSION_ID (Fast Connect Mode)');
     } catch (e) {
-        console.log('⚠️ Invalid SESSION_ID base64, falling back to file session');
+        console.log('⚠️ Invalid SESSION_ID, falling back to file session');
     }
 }
 
-// 3. Garbage Collector (--expose-gc) Check
+// 3. Garbage Collector Check
 if (global.gc) {
-    console.log('✅ Garbage Collector (--expose-gc) is ACTIVE');
-    // Har 30 minute mein manual GC call karo (GAAJU-XMD style)
+    console.log('✅ Garbage Collector (--expose-gc) ACTIVE');
     setInterval(() => {
         if (global.gc) {
             global.gc();
-            console.log('🧹 Manual Garbage Collection triggered');
+            console.log('🧹 Manual GC triggered');
         }
-    }, 30 * 60 * 1000); // 30 minutes
+    }, 30 * 60 * 1000);
 } else {
-    console.log('⚠️ Run with --expose-gc flag for better memory management');
+    console.log('⚠️ Run with --expose-gc for better memory');
 }
-// ========== END OF NEW IMPROVEMENTS ==========
+// ========== END OF IMPROVEMENTS ==========
 
-
-// ✅ LOCK FILE — Prevent multiple instances
-const fs = require('fs');
-const path = require('path');
-
+// ========== ✅ SMART LOCK FILE (Lifetime Guarantee) ==========
 const LOCK_FILE = './bot.lock';
+
 if (fs.existsSync(LOCK_FILE)) {
     try {
-        const pid = parseInt(fs.readFileSync(LOCK_FILE, 'utf8').trim());
-        process.kill(pid, 0);
-        console.log(`❌ Another instance is running (PID: ${pid}). Exiting...`);
-        process.exit(1);
+        const data = fs.readFileSync(LOCK_FILE, 'utf8');
+        let pid = parseInt(data);
+        let isStale = false;
+
+        if (isNaN(pid)) {
+            try {
+                const jsonData = JSON.parse(data);
+                pid = jsonData.pid;
+                const age = Date.now() - jsonData.time;
+                if (age > 120000) { // 2 minutes stale
+                    isStale = true;
+                }
+            } catch (e) {
+                isStale = true;
+            }
+        }
+
+        if (!isStale) {
+            try {
+                process.kill(pid, 0);
+                console.log(`❌ Another instance running (PID: ${pid}). Exiting...`);
+                process.exit(1);
+            } catch (e) {
+                console.log('⚠️ Stale lock (PID not active), removing...');
+                fs.unlinkSync(LOCK_FILE);
+            }
+        } else {
+            console.log('⚠️ Stale lock (timeout > 2 min), removing...');
+            fs.unlinkSync(LOCK_FILE);
+        }
     } catch (e) {
-        console.log('⚠️ Stale lock file found, removing...');
-        fs.unlinkSync(LOCK_FILE);
+        console.log('⚠️ Invalid lock file, removing...');
+        try { fs.unlinkSync(LOCK_FILE); } catch (_) {}
     }
 }
-fs.writeFileSync(LOCK_FILE, String(process.pid));
+
+fs.writeFileSync(LOCK_FILE, JSON.stringify({ pid: process.pid, time: Date.now() }));
 
 const cleanLock = () => {
-    try { fs.unlinkSync(LOCK_FILE); } catch (e) {}
+    try { fs.unlinkSync(LOCK_FILE); } catch (_) {}
 };
 process.on('exit', cleanLock);
 process.on('SIGINT', cleanLock);
 process.on('SIGTERM', cleanLock);
-// ✅ END LOCK FILE
+// ========== END SMART LOCK ==========
 
 //════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
 
@@ -159,11 +184,7 @@ function readStatusConfig() {
         const p = path.join(__dirname, 'data', 'autostatus.json');
         if (fs.existsSync(p)) { 
             const c = JSON.parse(fs.readFileSync(p, 'utf8')); 
-            return { 
-                enabled: c.enabled === true, 
-                likeOn: c.likeOn === true,
-                selfOn: c.selfOn === true
-            }; 
+            return { enabled: c.enabled === true, likeOn: c.likeOn === true, selfOn: c.selfOn === true }; 
         }
     } catch (e) {}
     return { enabled: false, likeOn: false, selfOn: false };
@@ -177,13 +198,12 @@ function getBotMode() {
     } catch (e) { return 'PUBLIC 🌐'; }
 }
 
-// ✅ Memory guard (Pehle se tha, isko rakhte hain)
+// ✅ Memory guard (Single interval, no duplicates)
 setInterval(() => {
     const memMB = process.memoryUsage().rss / 1024 / 1024;
     console.log(`💾 Memory: ${Math.round(memMB)}MB`);
-    
     if (memMB > 500) {
-        console.log('⚠️ High memory - forcing garbage collection');
+        console.log('⚠️ High memory - forcing GC');
         if (global.gc) global.gc();
     }
     if (memMB > 700) {
@@ -191,9 +211,6 @@ setInterval(() => {
         process.exit(1);
     }
 }, 5 * 60 * 1000);
-
-setInterval(() => { if (global.gc) global.gc(); }, 60000);
-setInterval(() => { if (process.memoryUsage().rss / 1024 / 1024 > 400) process.exit(1); }, 30000);
 
 let phoneNumber = "917384287404";
 let owner = JSON.parse(fs.readFileSync('./data/owner.json'));
@@ -205,12 +222,15 @@ const useMobile = process.argv.includes("--mobile");
 const rl = process.stdin.isTTY ? readline.createInterface({ input: process.stdin, output: process.stdout }) : null;
 const question = (text) => rl ? new Promise((resolve) => rl.question(text, resolve)) : Promise.resolve(settings.ownerNumber || phoneNumber);
 
+// ✅ FIXED: Accurate command count from commands/ folder
 function getCommandCount() {
     try {
-        const c = fs.readFileSync(path.join(__dirname, 'main.js'), 'utf8');
-        const re = /case\s+userMessage\s*(===|\.startsWith\(|\.includes\(|\.match\()\s*['"`]\.([^'"`]+)['"`]/g;
-        let m, count = 0; while ((m = re.exec(c)) !== null) { if (m[2]) count++; }
-        return count || 150;
+        const cmdDir = path.join(__dirname, 'commands');
+        if (fs.existsSync(cmdDir)) {
+            const files = fs.readdirSync(cmdDir).filter(f => f.endsWith('.js'));
+            return files.length || 150;
+        }
+        return 150;
     } catch (e) { return 150; }
 }
 
@@ -230,9 +250,7 @@ async function startdexbotInc() {
             msgRetryCounterCache, defaultQueryTimeoutMs: 60000, connectTimeoutMs: 60000, keepAliveIntervalMs: 10000,
         });
 
-        // ✅ IMPORTANT: Global variable set karo taaki SIGINT/SIGTERM mein socket end kar sakein
         global.dexbotInc = dexbotInc;
-
         dexbotInc.ev.on('creds.update', saveCreds);
         store.bind(dexbotInc.ev);
 
@@ -244,7 +262,6 @@ async function startdexbotInc() {
 
                 if (mek.key && mek.key.remoteJid === 'status@broadcast') {
                     if (mek.key.fromMe) {
-                        // Only process own status if selfOn is enabled
                         const statusConfig = readStatusConfig();
                         if (statusConfig.enabled && statusConfig.selfOn) {
                             handleStatusUpdate(dexbotInc, chatUpdate).catch(err => console.error("Status view error:", err.message));
@@ -298,7 +315,6 @@ async function startdexbotInc() {
                 console.log(chalk.cyan(`🌿Connected => ` + JSON.stringify(dexbotInc.user, null, 2)));
                 reconnectAttempts = 0;
                 
-                // ✅ Session backup every hour
                 setInterval(() => {
                     try {
                         const backupDir = './session_backup';
@@ -312,7 +328,7 @@ async function startdexbotInc() {
                 
                 try {
                     const botNumber = dexbotInc.user.id.split(':')[0] + '@s.whatsapp.net';
-                    const time = new Date().toLocaleString('en-US', { timeZone: settings.timezone || 'Africa/Lagos', hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+                    const time = new Date().toLocaleString('en-US', { timeZone: settings.timezone || 'Asia/Kolkata', hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
                     const activationMessage = `╭──❍「 *BOT ACTIVATED* 」❍\n├• 📅 ${time}\n├• ✅ Status: ONLINE & READY\n├• 💻 Version: ${settings.version}\n├• 👤 Owner: ${settings.botOwner}\n├• 📞 Contact: ${settings.ownerNumber}\n├• 🌐 Prefix: ${settings.prefix}\n├• 💻 Mode: ${getBotMode()}\n├• 💡 ${getCommandCount()}+ Commands\n╰─┬─★─☆─♪♪─❍\n╭─┴❍「 *QUICK START* 」❍\n◈ • .menu - All commands\n◈ • .help - Bot guide\n◈ • .owner - Contact owner\n◈ • .settings - Settings\n◈ • .ping - Check speed\n◈ • .update - Update bot\n╰─┬─★─☆─♪♪─❍\n╭─┴❍「 *CONNECT* 」❍\n◈ • 💬 Support Group\n◈ • 📺 YouTube Channel\n◈ • ⭐ GitHub Repo\n◈ • 🔔 Channel Updates\n╰───★─☆─♪♪─❍\n\n*🔗 Channel:* ${global.channelLink}\n*💬 Support:* https://chat.whatsapp.com/EefmNhOh1TvGcZhwySaOGw?s=cl&p=a&ilr=4\n*📺 YouTube:* https://www.youtube.com/@gang_hacker\n*💻 com/𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓\n\n🤖 𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓 - Professional WhatsApp Bot`;
                     await dexbotInc.sendMessage(botNumber, { text: activationMessage, contextInfo: { forwardingScore: 1, isForwarded: true, forwardedNewsletterMessageInfo: { newsletterJid: '120363406449026172@newsletter', newsletterName: 'Dex-Shyam-Tech', serverMessageId: -1 } } });
                 } catch (e) { console.error('Error sending activation:', e.message); }
@@ -321,10 +337,8 @@ async function startdexbotInc() {
                 console.log(chalk.green(`${global.themeemoji || '•'} 🤖 Bot Connected! ✅`));
             }
             
-            // ✅ Connection stability with exponential backoff
             if (connection === 'close') {
                 const statusCode = lastDisconnect?.error?.output?.statusCode;
-                // Don't reconnect if logged out
                 if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
                     console.log('❌ Logged out - delete session and re-pair');
                     try { rmSync('./session', { recursive: true, force: true }); } catch (e) {}
@@ -332,7 +346,7 @@ async function startdexbotInc() {
                 }
                 if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
                     reconnectAttempts++;
-                    const delayMs = Math.min(5000 * reconnectAttempts, 30000); // max 30s
+                    const delayMs = Math.min(5000 * reconnectAttempts, 30000);
                     console.log(`🔄 Reconnecting in ${delayMs/1000}s (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
                     setTimeout(startdexbotInc, delayMs);
                 } else {
@@ -361,7 +375,7 @@ async function startdexbotInc() {
     }
 }
 
-// ✅ IMPROVED GRACEFUL SHUTDOWN (Ab socket properly close hoga)
+// ✅ Graceful Shutdown
 process.on('SIGINT', async () => {
     try { require('./commands/autorecord').stopAllInfiniteRecordings(); } catch (e) {}
     try { require('./commands/autotyping').stopAllInfiniteTyping(); } catch (e) {}
