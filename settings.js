@@ -50,7 +50,7 @@ module.exports = {
     botName: "𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓",
     botOwner: "Shyam Choudhari",
     ownerNumber: process.env.OWNER_NUMBER || "917384287404",
-    prefix: process.env.PREFIX || ".",
+    prefix: process.env.PREFIX || "",
     
     // ===================== TIMEZONE (INDIA) =====================
     timezone: process.env.TIMEZONE || "Asia/Kolkata",  // India timezone fixed

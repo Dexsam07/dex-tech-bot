@@ -234,8 +234,8 @@ const { coinflipCommand, coinstatsCommand, coindailyCommand, coinleaderboardComm
 // Global settings (Updated to your branding)
 global.packname = settings.packname;
 global.author = settings.author;
-global.channelLink = "https://whatsapp.com/channel/0029Vb7sAEhJuyAM27V79D20";
-global.ytch = settings.ytChannel || "Dex Shyam Tech";  // ✅ Changed from GANG HACKER
+global.channelLink = "https://whatsapp.com/channel/0029VbBgXTsKwqSKZKy38w2o";
+global.ytch = settings.ytChannel || "Dex Shyam Tech";  // ✅ Changed from DEX HACKER
 
 function getDeploymentPlatform() {
     if (process.env.RENDER) return 'Render';
