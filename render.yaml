@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: 𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
