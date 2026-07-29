@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://o.uguu.se/CrQCelwU.jpg" width="100%">
+<img src="https://raw.githubusercontent.com/Dexsam07/dex-tech-bot/main/assets/bot_image.png" width="100%">
 </p>
 
 <h1 align="center">🚀 DEX-TECH-BOT 🚀</h1>
@@ -27,7 +27,7 @@ A Powerful Multi-Device WhatsApp Bot Built For Speed, Stability & Simplicity.
 </a>
 </p>
 
-> **Note:** Replace `dex-tech-pair.onrender.com` with your actual session ID generation URL.
+> ⚠️ **Note:** Upar diye gaye link ko apne actual session ID generation URL se replace karein. (Example: `https://your-session-site.onrender.com`)
 
 ---
 
