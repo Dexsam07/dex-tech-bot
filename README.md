@@ -6,7 +6,7 @@
 
 <p align="center">
 <img src="https://img.shields.io/badge/BEST-MULTI_DEVICE_BOT-cyan?style=for-the-badge">
-<img src="https://img.shields.io/badge/-DEX_TECH-black?style=for-the-badge&logo=whatsapp&logoColor=cyan">
+<img src="https://img.shields.io/badge/-DEX_SHYAM_TECH-black?style=for-the-badge&logo=whatsapp&logoColor=cyan">
 <img src="https://img.shields.io/badge/Developer-Dexsam07-cyan?style=for-the-badge">
 </p>
 
