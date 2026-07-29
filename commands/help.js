@@ -1,9 +1,22 @@
-const settings = require('../settings');
+//════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
+//                                                             𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓                                                                                                     //
+//                                                                  𝐕 : 1.0.0                                                                                                             //
+//                                                                 𝐂𝐎𝐏𝐘𝐑𝐈𝐆𝐇𝐓 2026                                                                                                        //
+//════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
+//* 
+//  * command : help / menu
+//  * description : Show interactive menu with all commands
+//  * Credit To  DEX SHYAM TECH
+// ⛥┌┤
+// */
+
 const fs = require('fs');
 const path = require('path');
+const settings = require('../settings');
 const { getCurrentFont, applyFont } = require('./menufont');
 const { getCurrentStyle } = require('./menustyle');
 
+// ========== UTILITY FUNCTIONS ==========
 function getDeploymentPlatform() {
     if (process.env.RENDER) return 'Render';
     if (process.env.CODESPACE_NAME) return 'Codespaces';
@@ -18,46 +31,107 @@ function getDeploymentPlatform() {
     return 'Local Machine';
 }
 
-function updateUserStats(userJid, platform) {
+function getContextInfo() {
+    return {
+        contextInfo: {
+            forwardingScore: 1,
+            isForwarded: true,
+            forwardedNewsletterMessageInfo: {
+                newsletterJid: settings.newsletterJid || '120363406449026172@newsletter',
+                newsletterName: settings.newsletterName || 'Dex Shyam Tech',
+                serverMessageId: -1
+            }
+        }
+    };
+}
+
+// ========== STATS MANAGEMENT (Atomic) ==========
+function saveDataAtomic(file, data) {
     try {
-        const userPhone = userJid.split('@')[0];
-        const statsPath = path.join(__dirname, '../data/userStats.json');
-        const dataDir = path.dirname(statsPath);
-        if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-        let stats = { totalUsers: 0, activeUsers: {}, platforms: {}, users: {}, lastUpdated: Date.now(), botName: settings.botName || 'Dex Shyam Tech', version: settings.version || '1.0.0' };
-        if (fs.existsSync(statsPath)) { try { stats = JSON.parse(fs.readFileSync(statsPath, 'utf8')); } catch (e) {} }
-        const userKey = `user_${userPhone}`;
-        const isNewUser = !stats.users[userKey];
-        const currentTime = Date.now();
-        stats.users[userKey] = { phone: userPhone, platform: platform, lastActive: currentTime, firstSeen: isNewUser ? currentTime : (stats.users[userKey]?.firstSeen || currentTime), totalUses: (stats.users[userKey]?.totalUses || 0) + 1 };
-        if (isNewUser) { stats.platforms[platform] = (stats.platforms[platform] || 0) + 1; stats.totalUsers = Object.keys(stats.users).length; }
-        stats.activeUsers[userKey] = currentTime;
-        const thirtyMinutesAgo = currentTime - (30 * 60 * 1000);
-        Object.keys(stats.activeUsers).forEach(key => { if (stats.activeUsers[key] < thirtyMinutesAgo) delete stats.activeUsers[key]; });
-        stats.lastUpdated = currentTime;
-        fs.writeFileSync(statsPath, JSON.stringify(stats, null, 2));
-        return { totalUsers: stats.totalUsers, activeUsers: Object.keys(stats.activeUsers).length, platforms: stats.platforms };
-    } catch (error) { return { totalUsers: 1, activeUsers: 1, platforms: { [platform]: 1 } }; }
+        const tempFile = file + '.tmp';
+        fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), 'utf8');
+        fs.renameSync(tempFile, file);
+        return true;
+    } catch (error) {
+        console.error(`❌ Error saving ${file}:`, error.message);
+        try { fs.unlinkSync(file + '.tmp'); } catch (_) {}
+        return false;
+    }
+}
+
+function loadStats() {
+    const statsPath = path.join(__dirname, '../data/userStats.json');
+    const defaultStats = { totalUsers: 0, activeUsers: {}, platforms: {}, users: {}, lastUpdated: Date.now(), botName: settings.botName || 'Dex Shyam Tech', version: settings.version || '1.0.0' };
+    try {
+        if (fs.existsSync(statsPath)) {
+            const raw = fs.readFileSync(statsPath, 'utf8');
+            return JSON.parse(raw);
+        }
+    } catch (e) { console.error('⚠️ Stats file corrupt, resetting'); }
+    return defaultStats;
+}
+
+function updateUserStats(userJid, platform) {
+    const statsPath = path.join(__dirname, '../data/userStats.json');
+    const dataDir = path.dirname(statsPath);
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    
+    let stats = loadStats();
+    const userPhone = userJid.split('@')[0];
+    const userKey = `user_${userPhone}`;
+    const currentTime = Date.now();
+    const isNewUser = !stats.users[userKey];
+    
+    stats.users[userKey] = {
+        phone: userPhone,
+        platform: platform,
+        lastActive: currentTime,
+        firstSeen: isNewUser ? currentTime : (stats.users[userKey]?.firstSeen || currentTime),
+        totalUses: (stats.users[userKey]?.totalUses || 0) + 1
+    };
+    
+    if (isNewUser) {
+        stats.platforms[platform] = (stats.platforms[platform] || 0) + 1;
+        stats.totalUsers = Object.keys(stats.users).length;
+    }
+    
+    stats.activeUsers[userKey] = currentTime;
+    const thirtyMinutesAgo = currentTime - (30 * 60 * 1000);
+    Object.keys(stats.activeUsers).forEach(key => {
+        if (stats.activeUsers[key] < thirtyMinutesAgo) delete stats.activeUsers[key];
+    });
+    stats.lastUpdated = currentTime;
+    
+    saveDataAtomic(statsPath, stats);
+    return { totalUsers: stats.totalUsers, activeUsers: Object.keys(stats.activeUsers).length, platforms: stats.platforms };
 }
 
 function getUserStats() {
-    try {
-        const statsPath = path.join(__dirname, '../data/userStats.json');
-        if (!fs.existsSync(statsPath)) return { totalUsers: 0, activeUsers: 0, platforms: {} };
-        const stats = JSON.parse(fs.readFileSync(statsPath, 'utf8'));
-        const currentTime = Date.now();
-        const thirtyMinutesAgo = currentTime - (30 * 60 * 1000);
-        Object.keys(stats.activeUsers || {}).forEach(key => { if (stats.activeUsers[key] < thirtyMinutesAgo) delete stats.activeUsers[key]; });
-        return { totalUsers: stats.totalUsers || Object.keys(stats.users || {}).length, activeUsers: Object.keys(stats.activeUsers || {}).length, platforms: stats.platforms || {} };
-    } catch (error) { return { totalUsers: 0, activeUsers: 0, platforms: {} }; }
+    const stats = loadStats();
+    const currentTime = Date.now();
+    const thirtyMinutesAgo = currentTime - (30 * 60 * 1000);
+    if (stats.activeUsers) {
+        Object.keys(stats.activeUsers).forEach(key => {
+            if (stats.activeUsers[key] < thirtyMinutesAgo) delete stats.activeUsers[key];
+        });
+    }
+    return {
+        totalUsers: stats.totalUsers || Object.keys(stats.users || {}).length,
+        activeUsers: Object.keys(stats.activeUsers || {}).length,
+        platforms: stats.platforms || {}
+    };
 }
 
+// ========== HELPERS ==========
 function getPrefix() { return settings.prefix || '.'; }
 
 function getBotMode() {
     try {
         const p = path.join(__dirname, '../data/messageCount.json');
-        if (fs.existsSync(p)) { const d = JSON.parse(fs.readFileSync(p, 'utf8')); if (typeof d.isPublic === 'boolean') return d.isPublic ? 'PUBLIC 🌐' : 'PRIVATE 🔒'; }
+        if (fs.existsSync(p)) {
+            const d = JSON.parse(fs.readFileSync(p, 'utf8'));
+            if (typeof d.isPublic === 'boolean') return d.isPublic ? 'PUBLIC 🌐' : 'PRIVATE 🔒';
+        }
         return 'PUBLIC 🌐';
     } catch (e) { return 'PUBLIC 🌐'; }
 }
@@ -65,7 +139,7 @@ function getBotMode() {
 function getTimeBasedGreeting() {
     try {
         const now = new Date();
-        const tz = settings.timezone || 'Africa/Lagos';
+        const tz = settings.timezone || 'Asia/Kolkata';
         const hour = parseInt(now.toLocaleString('en-US', { timeZone: tz, hour12: false, hour: '2-digit' }));
         const time = now.toLocaleString('en-US', { timeZone: tz, hour12: true, hour: '2-digit', minute: '2-digit' });
         if (hour >= 5 && hour < 12) return { greeting: '🌅 Good Morning', emoji: '🌅', time, message: 'Have a wonderful day ahead!' };
@@ -78,15 +152,15 @@ function getTimeBasedGreeting() {
 function getDayWithEmoji() {
     try {
         const now = new Date();
-        const tz = settings.timezone || 'Africa/Lagos';
+        const tz = settings.timezone || 'Asia/Kolkata';
         const day = now.toLocaleString('en-US', { timeZone: tz, weekday: 'long' });
         const map = { 'Monday': '📅', 'Tuesday': '🔥', 'Wednesday': '🌎', 'Thursday': '🚀', 'Friday': '🎉', 'Saturday': '🌈', 'Sunday': '☀️' };
         return { day, emoji: map[day] || '📅' };
     } catch (e) { return { day: 'Today', emoji: '📅' }; }
 }
 
-async function getUserName(sock, userId, message) {
-    try { const n = message.pushName || message.key?.pushName; if (n) return n; const name = await sock.getName(userId); if (name && name !== userId) return name; return userId.split('@')[0] || 'User'; }
+function getUserName(sock, userId) {
+    try { return sock.getName(userId) || userId.split('@')[0] || 'User'; }
     catch (e) { return userId.split('@')[0] || 'User'; }
 }
 
@@ -96,22 +170,55 @@ function getPlatformEmoji(platform) {
 }
 
 function countTotalCommands() {
-    try { const p = path.join(__dirname, '../main.js'); if (!fs.existsSync(p)) return 157; const c = fs.readFileSync(p, 'utf8'); const re = /case\s+userMessage\s*(===|\.startsWith\(|\.includes\(|\.match\()\s*['"`]\.([^'"`]+)['"`]/g; let m, count = 0; while ((m = re.exec(c)) !== null) { if (m[2]) count++; } return count || 157; }
-    catch (e) { return 157; }
+    try {
+        const p = path.join(__dirname, '../main.js');
+        if (!fs.existsSync(p)) return 180;
+        const c = fs.readFileSync(p, 'utf8');
+        const re = /case\s+userMessage\s*(===|\.startsWith\(|\.includes\(|\.match\()\s*['"`][^'"`]+['"`]/g;
+        const matches = c.match(re);
+        return matches ? matches.length : 180;
+    } catch (e) { return 180; }
+}
+
+function getLocalizedTime() {
+    try {
+        const tz = settings.timezone || 'Asia/Kolkata';
+        return new Date().toLocaleString('en-US', {
+            timeZone: tz,
+            hour12: true,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    } catch (e) { return new Date().toLocaleString(); }
 }
 
 async function sendMenuAudio(sock, chatId, message) {
-    try { const audioPath = path.join(__dirname, '../assets/menu_audio.mp3'); if (fs.existsSync(audioPath)) { await sock.sendMessage(chatId, { audio: fs.readFileSync(audioPath), mimetype: 'audio/mpeg', ptt: false }, { quoted: message }); return true; } return false; }
-    catch (e) { return false; }
+    try {
+        const audioPath = path.join(__dirname, '../assets/menu_audio.mp3');
+        if (fs.existsSync(audioPath)) {
+            await sock.sendMessage(chatId, {
+                audio: fs.readFileSync(audioPath),
+                mimetype: 'audio/mpeg',
+                ptt: false
+            }, { quoted: message });
+            return true;
+        }
+        return false;
+    } catch (e) { return false; }
 }
 
+// ========== BUILD MENU FOR STYLES 2-12 ==========
 function buildMenu(styleId, data) {
     const { userName, greeting, prefix, totalCommands, stats, dayInfo, currentBotMode, menuType, userPlatform, getLocalizedTime } = data;
 
     const infoLines = [
         `User  : @${userName}`,
         `Bot   : ${settings.botName || 'Dex Shyam Tech'}`,
-        `Owner : ${settings.botOwner || 'Wally Jay'}`,
+        `Owner : ${settings.botOwner || 'Shyam Choudhari'}`,
         `Prefix: ${prefix}`,
         `Style : ${styleId}`,
         `Media : ${menuType}`,
@@ -160,13 +267,14 @@ function buildMenu(styleId, data) {
     menu += `${greeting.greeting}! Here's your menu:\n\n`;
     menu += s.top + '\n';
     for (const l of infoLines) menu += s.line + ' ' + l + '\n';
+    menu += s.bot + '\n\n';
+    menu += `   ⬇️ ALL COMMANDS ⬇️\n\n`;
     
     for (const [title, cmds] of allCommands) {
         menu += s.secHdr(title) + '\n';
         for (const cmd of cmds) menu += s.bul + cmd + '\n';
     }
     menu += s.bot + '\n\n';
-    menu += `    🟡 Copyright wallyjaytech 2025 🟡\n\n`;
     menu += `📊 Total Commands: ${totalCommands}\n\n`;
     menu += `📊 Local Stats: ${stats.activeUsers} active now, ${stats.totalUsers} total users\n\n`;
     menu += `${greeting.emoji} ${greeting.greeting}, @${userName}! ${greeting.message}\n\n`;
@@ -175,67 +283,94 @@ function buildMenu(styleId, data) {
     return menu;
 }
 
-async function helpCommand(sock, chatId, message) {
-    const senderId = message.key.participant || message.key.remoteJid;
-    const userName = await getUserName(sock, senderId, message);
-    const greeting = getTimeBasedGreeting();
-    const dayInfo = getDayWithEmoji();
-    const currentBotMode = getBotMode();
-    const prefix = getPrefix();
-    const userPlatform = getDeploymentPlatform();
-    const totalCommands = countTotalCommands();
-    const stats = getUserStats();
-    updateUserStats(senderId, userPlatform);
-    const fontId = getCurrentFont();
-    const styleId = getCurrentStyle();
+// ========== COMMAND ==========
+module.exports = {
+    name: 'help',  // also works with 'menu'
+    category: 'General',
+    description: 'Show interactive menu with all commands',
+    groupOnly: false,
+    ownerOnly: false,
 
-    let menuType = 'TEXT';
-    const imagePath = path.join(__dirname, '../assets/bot_image.jpg');
-    const videoPath = path.join(__dirname, '../assets/menu_video.mp4');
-    if (fs.existsSync(imagePath) && fs.existsSync(videoPath)) menuType = Math.random() < 0.5 ? 'IMAGE' : 'VIDEO';
-    else if (fs.existsSync(imagePath)) menuType = 'IMAGE';
-    else if (fs.existsSync(videoPath)) menuType = 'VIDEO';
+    execute: async (sock, message, args, senderId, chatId) => {
+        try {
+            const prefix = getPrefix();
+            const userName = await getUserName(sock, senderId);
+            const greeting = getTimeBasedGreeting();
+            const dayInfo = getDayWithEmoji();
+            const currentBotMode = getBotMode();
+            const userPlatform = getDeploymentPlatform();
+            const totalCommands = countTotalCommands();
+            const stats = getUserStats();
+            const fontId = getCurrentFont();
+            const styleId = getCurrentStyle();
 
-    const getLocalizedTime = () => {
-        try { return new Date().toLocaleString('en-US', { timeZone: settings.timezone || 'Africa/Lagos', hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }); }
-        catch (e) { return new Date().toLocaleString(); }
-    };
+            // Update stats (async)
+            updateUserStats(senderId, userPlatform);
 
-    let platformStatsText = '';
-    const platforms = stats.platforms || {};
-    const platformEntries = Object.entries(platforms).sort((a, b) => b[1] - a[1]);
-    platformStatsText = platformEntries.length > 0 ? platformEntries.map(([p, c]) => `║     ${getPlatformEmoji(p)} ${p}: ${c} users`).join('\n') : '║     📊 No platform data yet';
+            // Determine media type
+            let menuType = 'TEXT';
+            const imagePath = path.join(__dirname, '../assets/bot_image.jpg');
+            const videoPath = path.join(__dirname, '../assets/menu_video.mp4');
+            if (fs.existsSync(imagePath) && fs.existsSync(videoPath)) menuType = Math.random() < 0.5 ? 'IMAGE' : 'VIDEO';
+            else if (fs.existsSync(imagePath)) menuType = 'IMAGE';
+            else if (fs.existsSync(videoPath)) menuType = 'VIDEO';
 
-    const userUsageInfo = stats.users?.[`user_${senderId.split('@')[0]}`] ? `║     📈 Your Usage: ${stats.users[`user_${senderId.split('@')[0]}`].totalUses || 1} commands` : '║     📈 Your Usage: First time user';
+            const getLocalized = getLocalizedTime;
 
-    let helpMessage;
-    
-    if (styleId === 1) {
-        helpMessage = `
+            let menuText;
+
+            // Style 1: Classic hardcoded menu (updated with dynamic values)
+            if (styleId === 1) {
+                const botName = settings.botName || 'Dex Shyam Tech';
+                const botOwner = settings.botOwner || 'Shyam Choudhari';
+                const channelLink = global.ytch || 'https://www.youtube.com/@dex_shyam_tech';
+                const ownerNumber = settings.ownerNumber || '917384287404';
+                const timezone = settings.timezone || 'Asia/Kolkata';
+                const totalCmds = totalCommands;
+                const active = stats.activeUsers;
+                const total = stats.totalUsers;
+
+                // Build platform stats
+                let platformStatsText = '';
+                const platforms = stats.platforms || {};
+                const platformEntries = Object.entries(platforms).sort((a, b) => b[1] - a[1]);
+                platformStatsText = platformEntries.length > 0
+                    ? platformEntries.map(([p, c]) => `│     ${getPlatformEmoji(p)} ${p}: ${c} users`).join('\n')
+                    : '│     📊 No platform data yet';
+
+                // User usage info
+                const statsData = loadStats();
+                const userKey = `user_${senderId.split('@')[0]}`;
+                const userUsage = statsData.users?.[userKey]?.totalUses || 1;
+                const usageText = `│     📈 Your Usage: ${userUsage} commands`;
+
+                const now = getLocalized();
+
+                menuText = `
 👋 Hello @${userName}! ${greeting.message}
 
 ${greeting.greeting}! Here's your menu:
 
-╭──⟢ Dex Shyam Tech ⟣──╮
+╭──⟢ ${botName} ⟣──╮
 │ 👤 User: @${userName}
-│ 🤖 Bot: ${settings.botName || 'Dex Shyam Tech'}
-│ 🧠 Version: ${stats.version || settings.version || '1.0.0'}
-│ 👑 Owner: ${settings.botOwner || 'Shyam Choudhari  '}
-│ 📺 Channel: ${global.ytch}
-│ 📞 Number: ${settings.ownerNumber}
+│ 🤖 Bot: ${botName}
+│ 🧠 Version: ${settings.version || '1.0.0'}
+│ 👑 Owner: ${botOwner}
+│ 📺 Channel: ${channelLink}
+│ 📞 Number: +${ownerNumber}
 │ 📥 Prefix: ${prefix}
 │ 🎨 Style: ${styleId}
-│ 🎬 Menu: ${menuType} & AUDIO
-│ 🌍 TimeZone: ${settings.timezone}
+│ 🎬 Menu: ${menuType}
+│ 🌍 TimeZone: ${timezone}
 │ ⏰ Time: ${greeting.time}
 │ ${dayInfo.emoji} Day: ${dayInfo.day}
 │ 💻 Mode: ${currentBotMode}
-│ 📊 Commands: ${totalCommands}
-│ 📅 Date: ${getLocalizedTime()}
+│ 📊 Commands: ${totalCmds}
+│ 📅 Date: ${now}
 │ 📡 Platform: ${userPlatform}
-│ 👥 Active Users: ${stats.activeUsers}
-│ 📈 Total Users: ${stats.totalUsers}
-${userUsageInfo}
+│ 👥 Active Users: ${active}
+│ 📈 Total Users: ${total}
+${usageText}
 │ 🌐 Users by Platform:
 ${platformStatsText}
 │ 📡 Tracking: Local Storage ✅
@@ -504,34 +639,68 @@ ${platformStatsText}
 
     🎯 ╰‣ 𝐏𝐎𝐖𝐄𝐑𝐃 𝐁𝐘 𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓 🎯
 
-📊 Total Commands: ${totalCommands}
+📊 Total Commands: ${totalCmds}
 
-📊 Local Stats: ${stats.activeUsers} active now, ${stats.totalUsers} total users
+📊 Local Stats: ${active} active now, ${total} total users
 
 ${greeting.emoji} ${greeting.greeting}, @${userName}! ${greeting.message}
 
 ⬇️Join our channel below for updates⬇️`;
-    } else {
-        const menuData = { userName, greeting, prefix, totalCommands, stats, dayInfo, currentBotMode, menuType, userPlatform, getLocalizedTime, styleId };
-        helpMessage = buildMenu(styleId, menuData);
-    }
+            } else {
+                // Styles 2-12: dynamic build
+                const menuData = {
+                    userName,
+                    greeting,
+                    prefix,
+                    totalCommands,
+                    stats,
+                    dayInfo,
+                    currentBotMode,
+                    menuType,
+                    userPlatform,
+                    getLocalizedTime: getLocalized
+                };
+                menuText = buildMenu(styleId, menuData);
+            }
 
-    const finalMessage = applyFont(helpMessage, fontId);
+            // Apply font
+            const finalMessage = applyFont(menuText, fontId);
 
-    try {
-        if (menuType === 'IMAGE') {
-            await sock.sendMessage(chatId, { image: fs.readFileSync(imagePath), caption: finalMessage, mentions: [senderId], contextInfo: { forwardingScore: 1, isForwarded: true, forwardedNewsletterMessageInfo: { newsletterJid: '120363406449026172@newsletter', newsletterName: 'Dex Shyam Tech', serverMessageId: -1 } } }, { quoted: message });
-        } else if (menuType === 'VIDEO') {
-            await sock.sendMessage(chatId, { video: fs.readFileSync(videoPath), caption: finalMessage, mentions: [senderId], contextInfo: { forwardingScore: 1, isForwarded: true, forwardedNewsletterMessageInfo: { newsletterJid: '120363406449026172@newsletter', newsletterName: 'Dex Shyam Tech', serverMessageId: -1 } } }, { quoted: message });
-        } else {
-            await sock.sendMessage(chatId, { text: finalMessage, mentions: [senderId], contextInfo: { forwardingScore: 1, isForwarded: true, forwardedNewsletterMessageInfo: { newsletterJid: '120363406449026172@newsletter', newsletterName: 'Dex Shyam Tech', serverMessageId: -1 } } });
+            // Prepare media and send
+            const context = getContextInfo();
+            const mentions = [senderId];
+
+            if (menuType === 'IMAGE' && fs.existsSync(imagePath)) {
+                await sock.sendMessage(chatId, {
+                    image: fs.readFileSync(imagePath),
+                    caption: finalMessage,
+                    mentions: mentions,
+                    ...context
+                }, { quoted: message });
+            } else if (menuType === 'VIDEO' && fs.existsSync(videoPath)) {
+                await sock.sendMessage(chatId, {
+                    video: fs.readFileSync(videoPath),
+                    caption: finalMessage,
+                    mentions: mentions,
+                    ...context
+                }, { quoted: message });
+            } else {
+                await sock.sendMessage(chatId, {
+                    text: finalMessage,
+                    mentions: mentions,
+                    ...context
+                }, { quoted: message });
+            }
+
+            // Optional audio
+            await sendMenuAudio(sock, chatId, message);
+
+        } catch (error) {
+            console.error('❌ Menu/Help command error:', error.message);
+            await sock.sendMessage(chatId, {
+                text: '❌ Failed to load menu. Please try again.',
+                ...getContextInfo()
+            }, { quoted: message });
         }
-        await new Promise(r => setTimeout(r, 1000));
-        await sendMenuAudio(sock, chatId, message);
-    } catch (error) {
-        console.error('Error in help command:', error);
-        await sock.sendMessage(chatId, { text: finalMessage, mentions: [senderId], contextInfo: { forwardingScore: 1, isForwarded: true, forwardedNewsletterMessageInfo: { newsletterJid: '120363406449026172@newsletter', newsletterName: 'Dex Shyam Tech', serverMessageId: -1 } } });
     }
-}
-
-module.exports = helpCommand;
+};

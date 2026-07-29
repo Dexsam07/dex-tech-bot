@@ -1,25 +1,76 @@
-/**
- * 𝐗𝐀𝐅𝐒𝐀𝐍-𝐔𝐋𝐓𝐑𝐀 - A WhatsApp Bot
- * Menu Style Command - 12 Professional Menu Layouts
- */
+//════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
+//                                                             𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓                                                                                                     //
+//                                                                  𝐕 : 1.0.0                                                                                                             //
+//                                                                 𝐂𝐎𝐏𝐘𝐑𝐈𝐆𝐇𝐓 2026                                                                                                        //
+//════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
+//* 
+//  * command : menustyle
+//  * description : Change menu display style (12 professional layouts)
+//  * Credit To  DEX SHYAM TECH
+// ⛥┌┤
+// */
 
 const fs = require('fs');
 const path = require('path');
+const settings = require('../settings');
 
-const configPath = path.join(__dirname, '../data/menuStyle.json');
+// ========== CONFIG PATH ==========
+const DATA_DIR = path.join(__dirname, '../data');
+const CONFIG_PATH = path.join(DATA_DIR, 'menuStyle.json');
 
-const channelInfo = {
-    contextInfo: {
-        forwardingScore: 1,
-        isForwarded: true,
-        forwardedNewsletterMessageInfo: {
-            newsletterJid: '120363426733881060@newsletter',
-            newsletterName: '𝐗𝐀𝐅𝐒𝐀𝐍-𝐔𝐋𝐓𝐑𝐀',
-            serverMessageId: -1
-        }
+if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// ========== ATOMIC SAVE ==========
+function saveDataAtomic(file, data) {
+    try {
+        const tempFile = file + '.tmp';
+        fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), 'utf8');
+        fs.renameSync(tempFile, file);
+        return true;
+    } catch (error) {
+        console.error(`❌ Error saving ${file}:`, error.message);
+        try { fs.unlinkSync(file + '.tmp'); } catch (_) {}
+        return false;
     }
-};
+}
 
+// ========== SAFE LOAD ==========
+function loadConfig() {
+    try {
+        if (fs.existsSync(CONFIG_PATH)) {
+            const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
+            const data = JSON.parse(raw);
+            return data.style || 1;
+        }
+    } catch (error) {
+        console.error('⚠️ Error loading menuStyle.json, resetting:', error.message);
+        saveDataAtomic(CONFIG_PATH, { style: 1 });
+    }
+    return 1;
+}
+
+function saveConfig(style) {
+    return saveDataAtomic(CONFIG_PATH, { style });
+}
+
+// ========== CONTEXT INFO ==========
+function getContextInfo() {
+    return {
+        contextInfo: {
+            forwardingScore: 1,
+            isForwarded: true,
+            forwardedNewsletterMessageInfo: {
+                newsletterJid: settings.newsletterJid || '120363406449026172@newsletter',
+                newsletterName: settings.newsletterName || 'Dex Shyam Tech',
+                serverMessageId: -1
+            }
+        }
+    };
+}
+
+// ========== STYLES DEFINITION ==========
 const STYLES = {
     1: { name: 'Original Classic', description: 'Boxed design with bold double-line borders' },
     2: { name: 'Archie Drop', description: 'Layered sections with arrow connectors and star dividers' },
@@ -35,88 +86,99 @@ const STYLES = {
     12: { name: 'APL Terminal', description: 'Up-arrow terminal style interface' }
 };
 
-function initConfig() {
-    try {
-        if (!fs.existsSync(configPath)) {
-            const dir = path.dirname(configPath);
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            fs.writeFileSync(configPath, JSON.stringify({ style: 1 }, null, 2));
-        }
-        return JSON.parse(fs.readFileSync(configPath));
-    } catch (e) { return { style: 1 }; }
-}
-
+// ========== PUBLIC FUNCTIONS ==========
 function getCurrentStyle() {
-    return initConfig().style || 1;
+    return loadConfig();
 }
 
 function setStyle(style) {
-    try {
-        fs.writeFileSync(configPath, JSON.stringify({ style }, null, 2));
-    } catch (e) {}
+    return saveConfig(style);
 }
 
-async function menuStyleCommand(sock, chatId, message, args) {
-    try {
-        const currentStyle = getCurrentStyle();
+// ========== COMMAND ==========
+module.exports = {
+    name: 'menustyle',
+    category: 'Utility',
+    description: 'Change menu display style (12 professional layouts)',
+    groupOnly: false,
+    ownerOnly: false,
 
-        if (!args || args.length === 0) {
-            let styleList = '';
-            for (const [id, style] of Object.entries(STYLES)) {
-                const marker = parseInt(id) === currentStyle ? '✅' : '└';
-                styleList += `${marker} *${id}.* ${style.name}\n   _${style.description}_\n\n`;
+    execute: async (sock, message, args, senderId, chatId) => {
+        try {
+            const prefix = settings.prefix || '.';
+            const currentStyle = getCurrentStyle();
+            const botName = settings.botName || '𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓';
+
+            if (!args || args.length === 0) {
+                let styleList = '';
+                for (const [id, style] of Object.entries(STYLES)) {
+                    const marker = parseInt(id) === currentStyle ? '✅' : '└';
+                    styleList += `${marker} *${id}.* ${style.name}\n   _${style.description}_\n\n`;
+                }
+
+                await sock.sendMessage(chatId, {
+                    text: `📋 *MENU STYLE SETTINGS*\n\n` +
+                          `━━━━━━━━━━━━━━━━━━━━\n` +
+                          `🟢 *Current Style:* ${STYLES[currentStyle]?.name || 'Original'} (#${currentStyle})\n\n` +
+                          `━━━━━━━━━━━━━━━━━━━━\n` +
+                          `📖 *Available Styles (12):*\n\n` +
+                          `${styleList}` +
+                          `━━━━━━━━━━━━━━━━━━━━\n` +
+                          `📖 *Commands:*\n` +
+                          `└ ${prefix}menustyle <1-12> - Change menu layout\n` +
+                          `└ ${prefix}menustyle - Show this menu\n\n` +
+                          `✨ *Example:*\n` +
+                          `└ ${prefix}menustyle 3\n` +
+                          `└ ${prefix}menustyle 7\n\n` +
+                          `🎨 Also try ${prefix}menufont <1-12> for text fonts!\n\n` +
+                          `🤖 ${botName}`,
+                    ...getContextInfo()
+                }, { quoted: message });
+                return;
+            }
+
+            const styleId = parseInt(args[0]);
+
+            if (!STYLES[styleId]) {
+                await sock.sendMessage(chatId, {
+                    text: `⚠️ *INVALID STYLE*\n\n━━━━━━━━━━━━━━━━━━━━\n📌 Choose a style from 1-12.\n\n💡 Use ${prefix}menustyle to see all options.`,
+                    ...getContextInfo()
+                }, { quoted: message });
+                return;
+            }
+
+            if (styleId === currentStyle) {
+                await sock.sendMessage(chatId, {
+                    text: `⚠️ *ALREADY SET*\n\n━━━━━━━━━━━━━━━━━━━━\n📋 Style *${STYLES[styleId].name}* (#${styleId}) is already active.\n\n💡 Use ${prefix}menustyle <1-12> to switch.\n\n🎨 Also try ${prefix}menufont <1-12> for text fonts!`,
+                    ...getContextInfo()
+                }, { quoted: message });
+                return;
+            }
+
+            const success = setStyle(styleId);
+            if (!success) {
+                await sock.sendMessage(chatId, {
+                    text: '❌ Failed to update style. Please try again.',
+                    ...getContextInfo()
+                }, { quoted: message });
+                return;
             }
 
             await sock.sendMessage(chatId, {
-                text: `📋 *MENU STYLE SETTINGS*\n\n` +
-                      `━━━━━━━━━━━━━━━━━━━━\n` +
-                      `🟢 *Current Style:* ${STYLES[currentStyle]?.name || 'Original'} (#${currentStyle})\n\n` +
-                      `━━━━━━━━━━━━━━━━━━━━\n` +
-                      `📖 *Available Styles (12):*\n\n` +
-                      `${styleList}` +
-                      `━━━━━━━━━━━━━━━━━━━━\n` +
-                      `📖 *Commands:*\n` +
-                      `└ .menustyle <1-12> - Change menu layout\n` +
-                      `└ .menustyle - Show this menu\n\n` +
-                      `✨ *Example:*\n` +
-                      `└ .menustyle 3\n` +
-                      `└ .menustyle 7`,
-                ...channelInfo
+                text: `✅ *STYLE UPDATED*\n\n━━━━━━━━━━━━━━━━━━━━\n📋 *New Style:* ${STYLES[styleId].name} (#${styleId})\n📝 *${STYLES[styleId].description}*\n\n💡 Use ${prefix}menu to see your new layout.\n🎨 Use ${prefix}menufont <1-12> to change text font.\n\n🤖 ${botName}`,
+                ...getContextInfo()
             }, { quoted: message });
-            return;
-        }
 
-        const styleId = parseInt(args[0]);
-
-        if (!STYLES[styleId]) {
+        } catch (error) {
+            console.error('❌ MenuStyle command error:', error.message);
             await sock.sendMessage(chatId, {
-                text: `⚠️ *INVALID STYLE*\n\n━━━━━━━━━━━━━━━━━━━━\n📌 Choose a style from 1-12.\n\n💡 Use .menustyle to see all options.`,
-                ...channelInfo
-            });
-            return;
+                text: '❌ An error occurred while changing the style. Please try again.',
+                ...getContextInfo()
+            }, { quoted: message });
         }
-
-        if (styleId === currentStyle) {
-            await sock.sendMessage(chatId, {
-                text: `⚠️ *ALREADY SET*\n\n━━━━━━━━━━━━━━━━━━━━\n📋 Style *${STYLES[styleId].name}* (#${styleId}) is already active.\n\n💡 Use .menustyle <1-12> to switch.\n\n🎨 Also try .menufont <1-12> for text fonts!`,
-                ...channelInfo
-            });
-            return;
-        }
-
-        setStyle(styleId);
-
-        await sock.sendMessage(chatId, {
-            text: `✅ *STYLE UPDATED*\n\n━━━━━━━━━━━━━━━━━━━━\n📋 *New Style:* ${STYLES[styleId].name} (#${styleId})\n📝 *${STYLES[styleId].description}*\n\n💡 Use .menu to see your new layout.\n🎨 Use .menufont <1-12> to change text font.`,
-            ...channelInfo
-        });
-    } catch (error) {
-        console.error('❌ Menu style error:', error);
-        await sock.sendMessage(chatId, {
-            text: '❌ Error processing command!',
-            ...channelInfo
-        });
     }
-}
+};
 
-module.exports = { menuStyleCommand, getCurrentStyle, STYLES };
+// ========== EXPOSE FOR MENU COMMAND ==========
+module.exports.getCurrentStyle = getCurrentStyle;
+module.exports.STYLES = STYLES;

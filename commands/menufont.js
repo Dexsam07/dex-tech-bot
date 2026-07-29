@@ -1,26 +1,76 @@
-/**
- * 𝐗𝐀𝐅𝐒𝐀𝐍-𝐔𝐋𝐓𝐑𝐀 - A WhatsApp Bot
- * Menu Font Command - Change menu display font style
- * Professional Version
- */
+//════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
+//                                                             𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓                                                                                                     //
+//                                                                  𝐕 : 1.0.0                                                                                                             //
+//                                                                 𝐂𝐎𝐏𝐘𝐑𝐈𝐆𝐇𝐓 2026                                                                                                        //
+//════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
+//* 
+//  * command : menufont
+//  * description : Change menu display font style
+//  * Credit To  DEX SHYAM TECH
+// ⛥┌┤
+// */
 
 const fs = require('fs');
 const path = require('path');
+const settings = require('../settings');
 
-const configPath = path.join(__dirname, '../data/menuFont.json');
-const channelInfo = {
-    contextInfo: {
-        forwardingScore: 1,
-        isForwarded: true,
-        forwardedNewsletterMessageInfo: {
-            newsletterJid: '120363426733881060@newsletter',
-            newsletterName: '𝐗𝐀𝐅𝐒𝐀𝐍-𝐔𝐋𝐓𝐑𝐀',
-            serverMessageId: -1
-        }
+// ========== CONFIG PATH ==========
+const DATA_DIR = path.join(__dirname, '../data');
+const CONFIG_PATH = path.join(DATA_DIR, 'menuFont.json');
+
+if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// ========== ATOMIC SAVE ==========
+function saveDataAtomic(file, data) {
+    try {
+        const tempFile = file + '.tmp';
+        fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), 'utf8');
+        fs.renameSync(tempFile, file);
+        return true;
+    } catch (error) {
+        console.error(`❌ Error saving ${file}:`, error.message);
+        try { fs.unlinkSync(file + '.tmp'); } catch (_) {}
+        return false;
     }
-};
+}
 
-// Available font styles
+// ========== SAFE LOAD ==========
+function loadConfig() {
+    try {
+        if (fs.existsSync(CONFIG_PATH)) {
+            const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
+            const data = JSON.parse(raw);
+            return data.fontId || 1;
+        }
+    } catch (error) {
+        console.error('⚠️ Error loading menuFont.json, resetting:', error.message);
+        saveDataAtomic(CONFIG_PATH, { fontId: 1 });
+    }
+    return 1;
+}
+
+function saveConfig(fontId) {
+    return saveDataAtomic(CONFIG_PATH, { fontId });
+}
+
+// ========== CONTEXT INFO ==========
+function getContextInfo() {
+    return {
+        contextInfo: {
+            forwardingScore: 1,
+            isForwarded: true,
+            forwardedNewsletterMessageInfo: {
+                newsletterJid: settings.newsletterJid || '120363406449026172@newsletter',
+                newsletterName: settings.newsletterName || 'Dex Shyam Tech',
+                serverMessageId: -1
+            }
+        }
+    };
+}
+
+// ========== FONT STYLES ==========
 const FONT_STYLES = {
     1: { name: 'Default', description: 'Standard WhatsApp font' },
     2: { name: 'Bold', description: 'Bold text style' },
@@ -28,7 +78,7 @@ const FONT_STYLES = {
     4: { name: 'Monospace', description: 'Code-like monospace font' },
     5: { name: 'Stylish A', description: '𝔖𝔱𝔶𝔩𝔦𝔰𝔥 𝔘𝔫𝔦𝔠𝔬𝔡𝔢' },
     6: { name: 'Stylish B', description: '𝕾𝖙𝖞𝖑𝖎𝖘𝖍 𝕲𝖔𝖙𝖍𝖎𝖈' },
-    7: { name: 'Double', description: '𝕯𝕺𝖀𝕭𝕷𝕰 𝕾𝖳𝕽𝖀𝕶' },
+    7: { name: 'Double', description: '𝔻𝕆𝕌𝔹𝕃𝔼 𝕊𝕋ℝ𝕌𝕂' },
     8: { name: 'Script', description: '𝒮𝒸𝓇𝒾𝓅𝓉 𝒮𝓉𝓎𝓁𝑒' },
     9: { name: 'Bubble', description: 'Ⓑⓤⓑⓑⓛⓔ Ⓢⓣⓨⓛⓔ' },
     10: { name: 'Square', description: '🅂🅀🅄🄰🅁🄴 🅂🅃🅈🄻🄴' },
@@ -36,13 +86,13 @@ const FONT_STYLES = {
     12: { name: 'Tiny Caps', description: 'тιηу ¢αρѕ ѕтуℓє' }
 };
 
-// Font transformation functions
+// ========== FONT TRANSFORMATIONS ==========
 function applyFont(text, fontId) {
     switch(fontId) {
-        case 1: return text; // Default - no change
-        case 2: return `*${text}*`; // Bold
-        case 3: return `_${text}_`; // Italic
-        case 4: return `\`\`\`${text}\`\`\``; // Monospace
+        case 1: return text;
+        case 2: return `*${text}*`;
+        case 3: return `_${text}_`;
+        case 4: return `\`\`\`${text}\`\`\``;
         case 5: return toStylishA(text);
         case 6: return toStylishB(text);
         case 7: return toDoubleStruck(text);
@@ -143,84 +193,102 @@ function toTinyCaps(text) {
     return text.split('').map(c => map[c] || c).join('');
 }
 
-function initConfig() {
-    try {
-        if (!fs.existsSync(configPath)) {
-            fs.writeFileSync(configPath, JSON.stringify({ fontId: 1 }, null, 2));
-        }
-        return JSON.parse(fs.readFileSync(configPath));
-    } catch (e) {
-        return { fontId: 1 };
-    }
-}
-
+// ========== PUBLIC FUNCTIONS ==========
 function getCurrentFont() {
-    return initConfig().fontId || 1;
+    return loadConfig();
 }
 
 function setFont(fontId) {
-    fs.writeFileSync(configPath, JSON.stringify({ fontId }, null, 2));
+    return saveConfig(fontId);
 }
 
-async function menuFontCommand(sock, chatId, message, args) {
-    try {
-        const currentFont = getCurrentFont();
+// ========== COMMAND ==========
+module.exports = {
+    name: 'menufont',
+    category: 'Utility',
+    description: 'Change menu display font style',
+    groupOnly: false,
+    ownerOnly: false,
 
-        if (!args || args.length === 0) {
-            let fontList = '';
-            for (const [id, font] of Object.entries(FONT_STYLES)) {
-                const marker = parseInt(id) === currentFont ? '✅' : '└';
-                fontList += `${marker} *${id}.* ${font.name} - _${font.description}_\n`;
+    execute: async (sock, message, args, senderId, chatId) => {
+        try {
+            const prefix = settings.prefix || '.';
+            const currentFont = getCurrentFont();
+
+            if (!args || args.length === 0) {
+                let fontList = '';
+                for (const [id, font] of Object.entries(FONT_STYLES)) {
+                    const marker = parseInt(id) === currentFont ? '✅' : '└';
+                    fontList += `${marker} *${id}.* ${font.name} - _${font.description}_\n`;
+                }
+
+                const botName = settings.botName || '𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓';
+
+                await sock.sendMessage(chatId, {
+                    text: `🎨 *MENU FONT SETTINGS*\n\n` +
+                          `━━━━━━━━━━━━━━━━━━━━\n` +
+                          `🟢 *Current Font:* ${FONT_STYLES[currentFont]?.name || 'Default'} (#${currentFont})\n\n` +
+                          `━━━━━━━━━━━━━━━━━━━━\n` +
+                          `📋 *Available Fonts:*\n` +
+                          `${fontList}\n` +
+                          `━━━━━━━━━━━━━━━━━━━━\n` +
+                          `📖 *Commands:*\n` +
+                          `└ ${prefix}menufont <number> - Change font\n` +
+                          `└ ${prefix}menufont - Show this menu\n\n` +
+                          `✨ *Example:*\n` +
+                          `└ ${prefix}menufont 5\n\n` +
+                          `🤖 ${botName}`,
+                    ...getContextInfo()
+                }, { quoted: message });
+                return;
             }
 
+            const fontId = parseInt(args[0]);
+
+            if (!FONT_STYLES[fontId]) {
+                await sock.sendMessage(chatId, {
+                    text: `⚠️ *INVALID FONT*\n\n━━━━━━━━━━━━━━━━━━━━\n📌 Choose a font from 1-${Object.keys(FONT_STYLES).length}.\n\n💡 Use ${prefix}menufont to see all options.`,
+                    ...getContextInfo()
+                }, { quoted: message });
+                return;
+            }
+
+            if (fontId === currentFont) {
+                await sock.sendMessage(chatId, {
+                    text: `⚠️ *ALREADY SET*\n\n━━━━━━━━━━━━━━━━━━━━\n🎨 Font *${FONT_STYLES[fontId].name}* is already active.\n\n💡 Use ${prefix}menufont <number> to change.`,
+                    ...getContextInfo()
+                }, { quoted: message });
+                return;
+            }
+
+            const success = setFont(fontId);
+            if (!success) {
+                await sock.sendMessage(chatId, {
+                    text: '❌ Failed to update font. Please try again.',
+                    ...getContextInfo()
+                }, { quoted: message });
+                return;
+            }
+
+            const botName = settings.botName || '𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓';
+            const preview = applyFont(`${botName} Menu Preview`, fontId);
+
             await sock.sendMessage(chatId, {
-                text: `🎨 *MENU FONT SETTINGS*\n\n` +
-                      `━━━━━━━━━━━━━━━━━━━━\n` +
-                      `🟢 *Current Font:* ${FONT_STYLES[currentFont]?.name || 'Default'} (#${currentFont})\n\n` +
-                      `━━━━━━━━━━━━━━━━━━━━\n` +
-                      `📋 *Available Fonts:*\n` +
-                      `${fontList}\n` +
-                      `━━━━━━━━━━━━━━━━━━━━\n` +
-                      `📖 *Commands:*\n` +
-                      `└ .menufont <number> - Change font\n` +
-                      `└ .menufont - Show this menu\n\n` +
-                      `✨ *Example:*\n` +
-                      `└ .menufont 5`,
-                ...channelInfo
+                text: `✅ *FONT UPDATED*\n\n━━━━━━━━━━━━━━━━━━━━\n🎨 *New Font:* ${FONT_STYLES[fontId].name} (#${fontId})\n📝 *Style:* ${FONT_STYLES[fontId].description}\n\n━━━━━━━━━━━━━━━━━━━━\n📋 *Preview:*\n${preview}\n\n💡 Use ${prefix}menu to see your menu in this font.\n🤖 ${botName}`,
+                ...getContextInfo()
             }, { quoted: message });
-            return;
-        }
 
-        const fontId = parseInt(args[0]);
-
-        if (!FONT_STYLES[fontId]) {
+        } catch (error) {
+            console.error('❌ MenuFont command error:', error.message);
             await sock.sendMessage(chatId, {
-                text: `⚠️ *INVALID FONT*\n\n━━━━━━━━━━━━━━━━━━━━\n📌 Choose a font from 1-${Object.keys(FONT_STYLES).length}.\n\n💡 Use .menufont to see all options.`,
-                ...channelInfo
-            });
-            return;
+                text: '❌ An error occurred while changing the font. Please try again.',
+                ...getContextInfo()
+            }, { quoted: message });
         }
-
-        if (fontId === currentFont) {
-            await sock.sendMessage(chatId, {
-                text: `⚠️ *ALREADY SET*\n\n━━━━━━━━━━━━━━━━━━━━\n🎨 Font *${FONT_STYLES[fontId].name}* is already active.\n\n💡 Use .menufont <number> to change.`,
-                ...channelInfo
-            });
-            return;
-        }
-
-        setFont(fontId);
-
-        // Show preview
-        const preview = applyFont('𝐗𝐀𝐅𝐒𝐀𝐍-𝐔𝐋𝐓𝐑𝐀 Menu Preview', fontId);
-
-        await sock.sendMessage(chatId, {
-            text: `✅ *FONT UPDATED*\n\n━━━━━━━━━━━━━━━━━━━━\n🎨 *New Font:* ${FONT_STYLES[fontId].name} (#${fontId})\n📝 *Style:* ${FONT_STYLES[fontId].description}\n\n━━━━━━━━━━━━━━━━━━━━\n📋 *Preview:*\n${preview}\n\n💡 Use .menu to see your menu in this font.`,
-            ...channelInfo
-        });
-    } catch (error) {
-        console.error('❌ Menu font error:', error);
     }
-}
+};
 
-module.exports = { menuFontCommand, getCurrentFont, applyFont, FONT_STYLES };
+// ========== EXPOSE FOR MENU COMMAND ==========
+module.exports.getCurrentFont = getCurrentFont;
+module.exports.applyFont = applyFont;
+module.exports.FONT_STYLES = FONT_STYLES;

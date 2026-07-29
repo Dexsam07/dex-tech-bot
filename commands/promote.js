@@ -1,98 +1,90 @@
- const { isAdmin } = require('../lib/isAdmin');
+//════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
+//                                                             𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓                                                                                                     //
+//                                                                  𝐕 : 1.0.0                                                                                                             //
+//                                                                 𝐂𝐎𝐏𝐘𝐑𝐈𝐆𝐇𝐓 2026                                                                                                        //
+//════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
+//* 
+//  * command : promote
+//  * description : Promote a user to admin (Admin only)
+//  * Credit To  DEX SHYAM TECH
+// ⛥┌┤
+// */
 
-// Function to handle manual promotions via command
-async function promoteCommand(sock, chatId, mentionedJids, message) {
-    let userToPromote = [];
-    
-    // Check for mentioned users
-    if (mentionedJids && mentionedJids.length > 0) {
-        userToPromote = mentionedJids;
-    }
-    // Check for replied message
-    else if (message.message?.extendedTextMessage?.contextInfo?.participant) {
-        userToPromote = [message.message.extendedTextMessage.contextInfo.participant];
-    }
-    
-    // If no user found through either method
-    if (userToPromote.length === 0) {
-        await sock.sendMessage(chatId, { 
-            text: '*🦹‍♀️Please mention the user or reply to their message to promote🦹‍♀️!*'
-        });
-        return;
-    }
+const settings = require('../settings');
 
-    try {
-        await sock.groupParticipantsUpdate(chatId, userToPromote, "promote");
-        
-        // Get usernames for each promoted user
-        const usernames = await Promise.all(userToPromote.map(async jid => {
-            
-            return `@${jid.split('@')[0]}`;
-        }));
-
-        // Get promoter's name (the bot user in this case)
-        const promoterJid = sock.user.id;
-        
-        const promotionMessage = `*『 GROUP PROMOTION 』*\n\n` +
-            `👥 *Promoted User${userToPromote.length > 1 ? 's' : ''}:*\n` +
-            `${usernames.map(name => `• ${name}`).join('\n')}\n\n` +
-            `👑 *Promoted By:* @${promoterJid.split('@')[0]}\n\n` +
-            `📅 *Date:* ${new Date().toLocaleString()}\n\n` +
-            `*Copyright 𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓 2026*`;
-        await sock.sendMessage(chatId, { 
-            text: promotionMessage,
-            mentions: [...userToPromote, promoterJid]
-        });
-    } catch (error) {
-        console.error('*Error in promote command:*', error);
-        await sock.sendMessage(chatId, { text: '*🥹Failed to promote user(s)🥹!*'});
-    }
+function getContextInfo() {
+    return {
+        contextInfo: {
+            forwardingScore: 1,
+            isForwarded: true,
+            forwardedNewsletterMessageInfo: {
+                newsletterJid: settings.newsletterJid || '120363406449026172@newsletter',
+                newsletterName: settings.newsletterName || 'Dex Shyam Tech',
+                serverMessageId: -1
+            }
+        }
+    };
 }
 
-// Function to handle automatic promotion detection
-async function handlePromotionEvent(sock, groupId, participants, author) {
-    try {
-        // Safety check for participants
-        if (!Array.isArray(participants) || participants.length === 0) {
-            return;
+module.exports = {
+    name: 'promote',
+    category: 'Admin',
+    description: 'Promote a user to admin (Admin only)',
+    groupOnly: true,
+    ownerOnly: false,
+    execute: async (sock, message, args, senderId, chatId) => {
+        try {
+            // Bot admin check
+            let isBotAdmin = false;
+            try {
+                const meta = await sock.groupMetadata(chatId);
+                const botId = sock.user.id.split(':')[0] + '@s.whatsapp.net';
+                const p = meta.participants.find(p => p.id === botId);
+                isBotAdmin = p && (p.admin === 'admin' || p.admin === 'superadmin');
+            } catch (_) {}
+            if (!isBotAdmin) {
+                await sock.sendMessage(chatId, { text: '❌ Bot must be an admin to promote!', ...getContextInfo() }, { quoted: message });
+                return;
+            }
+
+            // Sender admin check
+            let isSenderAdmin = false;
+            try {
+                const meta = await sock.groupMetadata(chatId);
+                const p = meta.participants.find(p => p.id === senderId);
+                isSenderAdmin = p && (p.admin === 'admin' || p.admin === 'superadmin');
+            } catch (_) {}
+            const ownerJid = settings.ownerNumber.includes('@') ? settings.ownerNumber : `${settings.ownerNumber}@s.whatsapp.net`;
+            const isOwner = senderId === ownerJid || senderId === sock.user.id;
+            if (!isSenderAdmin && !isOwner) {
+                await sock.sendMessage(chatId, { text: '❌ Only admins or owner can promote!', ...getContextInfo() }, { quoted: message });
+                return;
+            }
+
+            // Target user
+            let userToPromote = null;
+            if (message.message?.extendedTextMessage?.contextInfo?.mentionedJid?.length > 0) userToPromote = message.message.extendedTextMessage.contextInfo.mentionedJid[0];
+            else if (message.message?.extendedTextMessage?.contextInfo?.participant) userToPromote = message.message.extendedTextMessage.contextInfo.participant;
+
+            if (!userToPromote) {
+                await sock.sendMessage(chatId, { text: '⚠️ Mention or reply to a user to promote.', ...getContextInfo() }, { quoted: message });
+                return;
+            }
+
+            // Prevent promoting owner/bot (pointless)
+            if (userToPromote === ownerJid) { await sock.sendMessage(chatId, { text: '👑 Owner is already the highest admin!', ...getContextInfo() }, { quoted: message }); return; }
+            try { const botId = sock.user.id.split(':')[0] + '@s.whatsapp.net'; if (userToPromote === botId) { await sock.sendMessage(chatId, { text: '😅 Bot is already admin!', ...getContextInfo() }, { quoted: message }); return; } } catch (_) {}
+
+            // Perform promote
+            await sock.groupParticipantsUpdate(chatId, [userToPromote], 'promote');
+            await sock.sendMessage(chatId, {
+                text: `⬆️ *USER PROMOTED!*\n\n@${userToPromote.split('@')[0]} is now an admin.`,
+                mentions: [userToPromote],
+                ...getContextInfo()
+            }, { quoted: message });
+        } catch (error) {
+            console.error('❌ Promote error:', error);
+            await sock.sendMessage(chatId, { text: '❌ Failed to promote user. Check bot permissions.', ...getContextInfo() }, { quoted: message });
         }
-
-        // Get usernames for promoted participants
-        const promotedUsernames = await Promise.all(participants.map(async jid => {
-            // Handle case where jid might be an object or not a string
-            const jidString = typeof jid === 'string' ? jid : (jid.id || jid.toString());
-            return `@${jidString.split('@')[0]} `;
-        }));
-
-        let promotedBy;
-        let mentionList = participants.map(jid => {
-            // Ensure all mentions are proper JID strings
-            return typeof jid === 'string' ? jid : (jid.id || jid.toString());
-        });
-
-        if (author && author.length > 0) {
-            // Ensure author has the correct format
-            const authorJid = typeof author === 'string' ? author : (author.id || author.toString());
-            promotedBy = `@${authorJid.split('@')[0]}`;
-            mentionList.push(authorJid);
-        } else {
-            promotedBy = 'System';
-        }
-
-        const promotionMessage = `*『 GROUP PROMOTION 』*\n\n` +
-            `👥 *Promoted User${participants.length > 1 ? 's' : ''}:*\n` +
-            `${promotedUsernames.map(name => `• ${name}`).join('\n')}\n\n` +
-            `👑 *Promoted By:* ${promotedBy}\n\n` +
-            `📅 *Date:* ${new Date().toLocaleString()}\n\n` +
-            `*Copyright 𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓 2026*`;       
-        
-        await sock.sendMessage(groupId, {
-            text: promotionMessage,
-            mentions: mentionList
-        });
-    } catch (error) {
-        console.error('*Error handling promotion event:*', error);
     }
-}
-
-module.exports = { promoteCommand, handlePromotionEvent };
+};
