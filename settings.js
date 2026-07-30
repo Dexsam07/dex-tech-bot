@@ -24,18 +24,18 @@
 //*
 //*
 //re-upload? recode? copy code? give credit to Dex shyam tech 2026:)
-//Instagram: 𝗠𝗢𝗡 𝗦𝗧𝗘𝗥tech
+//Instagram: @dex_shyam_42
 //Telegram: 
 //GitHub: 
 //WhatsApp: +639542842622
-//want more free bot scripts? subscribe to my youtube channel: https://www.youtube.com/@gang_hacker
-//   * Created By Github: 
+//want more free bot scripts? subscribe to my youtube channel: https://www.youtube.com/@dex_shyam_tech
+//   * Created By Github: dexsam07
 //   * Credit To  DEX SHYAM TECH
 //   * © 2026 𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓.
 // ⛥┌┤
 // */
 
-// ========== 🔥 STEP 3: COMPLETE SETTINGS (GAAJU-XMD LEVEL) ==========
+// ========== 🔥 STEP 3: COMPLETE SETTINGS (DEX-TECH-BOT LEVEL) ==========
 const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
@@ -51,6 +51,10 @@ module.exports = {
     botOwner: "Shyam Choudhari",
     ownerNumber: process.env.OWNER_NUMBER || "917384287404",
     prefix: process.env.PREFIX || "",
+    commandMode: "private",
+    description: "DEX-TECH-BOT ,A Multi-Device whatsapp user bot",
+  version: "1.0.0",
+  updateZipUrl: "https://github.com/Dexsam07/dex-tech-bot/archive/refs/heads/main.zip",
     
     // ===================== TIMEZONE (INDIA) =====================
     timezone: process.env.TIMEZONE || "Asia/Kolkata",  // India timezone fixed
@@ -62,7 +66,7 @@ module.exports = {
     newsletterName: "Dex Shyam Tech",
     
     // ===================== 🔑 ALL API KEYS (ENVIRONMENT VARIABLES SE) =====================
-    // Saari APIs jo GAAJU-XMD mein hain, sab yahan hain - kuch bhi missing nahi
+    // Saari APIs jo DEX-TECH-BOT mein hain, sab yahan hain - kuch bhi missing nahi
     apis: {
         // Giphy (GIF search)
         giphy: {
