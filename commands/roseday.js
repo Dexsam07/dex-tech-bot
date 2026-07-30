@@ -203,7 +203,7 @@ async function rosedayCommand(sock, chatId, message) {
         // Create the final message with header
         const finalMessage = `🌹 *ROSE DAY SPECIAL* 🌹\n\n` +
                            `${randomRose}\n\n` +
-                           `*${settings.packname || '𝗚𝗔𝗡𝗚 𝗛𝗔𝗖𝗞𝗘𝗥'}* 🤖 | *200+ Rose Messages*`;
+                           `*${settings.packname || 'DEX-TECH-BOT'}* 🤖 | *200+ Rose Messages*`;
 
         // Send the rose day message
         await sock.sendMessage(chatId, {
@@ -212,8 +212,8 @@ async function rosedayCommand(sock, chatId, message) {
                 forwardingScore: 1,
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363410099245350@newsletter',
-                    newsletterName: '𝗠𝗢𝗡 𝗦𝗧𝗘𝗥  ',
+                    newsletterJid: '120363406449026172@newsletter',
+                    newsletterName: 'DEX SHYAM TECH  ',
                     serverMessageId: -1
                 }
             }
@@ -228,8 +228,8 @@ async function rosedayCommand(sock, chatId, message) {
                 forwardingScore: 1,
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363410099245350@newsletter',
-                    newsletterName: '𝗠𝗢𝗡 𝗦𝗧𝗘𝗥  ',
+                    newsletterJid: '120363406449026172@newsletter',
+                    newsletterName: 'DEX SHYAM TECH  ',
                     serverMessageId: -1
                 }
             }

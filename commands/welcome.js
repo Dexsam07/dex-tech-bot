@@ -22,7 +22,7 @@ const channelInfo = {
 
 function getFormattedTime() {
     const now = new Date();
-    const timezone = settings.timezone || 'Africa/Lagos';
+    const timezone = settings.timezone || 'Asia/kolkata';
     try {
         return now.toLocaleString('en-US', {
             month: '2-digit', day: '2-digit', year: 'numeric',

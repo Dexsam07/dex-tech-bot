@@ -52,7 +52,7 @@ async function flirtCommand(sock, chatId, message) {
         // Create the final message with header
         const finalMessage = `💖 *FLIRT MESSAGE* 💖\n\n` +
                            `${randomFlirt}\n\n` +
-                           `*${settings.packname || '𝗚𝗔𝗡𝗚 𝗛𝗔𝗖𝗞𝗘𝗥'}* 🤖`;
+                           `*${settings.packname || 'DEX SHYAM TECH'}* 🤖`;
 
         // Send the flirty message
         await sock.sendMessage(chatId, {
@@ -61,8 +61,8 @@ async function flirtCommand(sock, chatId, message) {
                 forwardingScore: 1,
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363410099245350@newsletter',
-                    newsletterName: '𝗚𝗔𝗡𝗚 𝗛𝗔𝗖𝗞𝗘𝗥',
+                    newsletterJid: '120363406449026172@newsletter',
+                    newsletterName: 'DEX SHYAM TECH',
                     serverMessageId: -1
                 }
             }
@@ -77,8 +77,8 @@ async function flirtCommand(sock, chatId, message) {
                 forwardingScore: 1,
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363410099245350@newsletter',
-                    newsletterName: '𝗚𝗔𝗡𝗚 𝗛𝗔𝗖𝗞𝗘𝗥',
+                    newsletterJid: '120363406449026172@newsletter',
+                    newsletterName: 'DEX SHYAM TECH',
                     serverMessageId: -1
                 }
             }

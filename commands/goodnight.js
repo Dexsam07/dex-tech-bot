@@ -227,7 +227,7 @@ async function goodnightCommand(sock, chatId, message) {
         // Create the final message with header
         const finalMessage = `🌙 *GOODNIGHT WISHES* 🌙\n\n` +
                            `${randomGoodnight}\n\n` +
-                           `*${settings.packname || '𝗚𝗔𝗡𝗚 𝗛𝗔𝗖𝗞𝗘𝗥'}* 🤖 | *200+ Goodnight Messages*`;
+                           `*${settings.packname || 'DEX SHYAM TECH'}* 🤖 | *200+ Goodnight Messages*`;
 
         // Send the goodnight message
         await sock.sendMessage(chatId, {
@@ -236,8 +236,8 @@ async function goodnightCommand(sock, chatId, message) {
                 forwardingScore: 1,
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363410099245350@newsletter',
-                    newsletterName: '𝗚𝗔𝗡𝗚 𝗛𝗔𝗖𝗞𝗘𝗥',
+                    newsletterJid: '120363406449026172@newsletter',
+                    newsletterName: 'DEX SHYAM TECH',
                     serverMessageId: -1
                 }
             }
@@ -252,8 +252,8 @@ async function goodnightCommand(sock, chatId, message) {
                 forwardingScore: 1,
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363410099245350@newsletter',
-                    newsletterName: '𝗚𝗔𝗡𝗚 𝗛𝗔𝗖𝗞𝗘𝗥',
+                    newsletterJid: '120363406449026172@newsletter',
+                    newsletterName: 'DEX SHYAM TECH',
                     serverMessageId: -1
                 }
             }

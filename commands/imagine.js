@@ -40,7 +40,7 @@ async function imagineCommand(sock, chatId, message) {
         // Send the generated image
         await sock.sendMessage(chatId, {
             image: imageBuffer,
-            caption: `*🎨 Generated image for prompt: "${imagePrompt}"*\n\n🟣 *Copyright Chris Gaaju 2026* 🟣`
+            caption: `*🎨 Generated image for prompt: "${imagePrompt}"*\n\n🟣 *Copyright Dex-tech-bot 2026* 🟣`
         }, {
             quoted: message
         });
