@@ -9,18 +9,18 @@ const { promisify } = require('util');
 const execAsync = promisify(exec);
 
 // Configuration
-const GITHUB_REPO = '𝙓𝙖𝙛𝙨𝙖𝙣2/𝐗𝐀𝐅𝐒𝐀𝐍-XMD';
+const GITHUB_REPO = 'dexsam07/dex-bot-tech';
 const GITHUB_API = `https://api.github.com/repos/${GITHUB_REPO}`;
 const GITHUB_COMMITS_URL = `${GITHUB_API}/commits`;
 const GITHUB_MAIN_BRANCH = 'main'; // or 'master'
 
 // Try to get current version from settings
 let CURRENT_VERSION = '1.0.0';
-let TIMEZONE = 'Africa/Lagos';
+let TIMEZONE = 'Asia/kolkata';
 try {
     const settings = require('../settings');
     CURRENT_VERSION = settings.version || '1.0.0';
-    TIMEZONE = settings.timezone || 'Africa/Lagos';
+    TIMEZONE = settings.timezone || 'Asia/kolkata';
 } catch (error) {
     console.error('Could not load settings:', error.message);
 }
@@ -30,8 +30,8 @@ const CHANNEL_INFO = {
         forwardingScore: 1,
         isForwarded: true,
         forwardedNewsletterMessageInfo: {
-            newsletterJid: '120363426733881060@newsletter',
-            newsletterName: '𝙓𝙖𝙛𝙨𝙖𝙣 𝙓 𝙏𝙖𝙘𝙝',
+            newsletterJid: '120363406449026172@newsletter',
+            newsletterName: 'DEX SHYAM TECH',
             serverMessageId: -1
         }
     }
@@ -122,7 +122,7 @@ async function checkForUpdates() {
         // Get latest commits from GitHub
         const response = await axios.get(`${GITHUB_COMMITS_URL}?sha=${GITHUB_MAIN_BRANCH}&per_page=5`, {
             headers: {
-                'User-Agent': '𝐗𝐀𝐅𝐒𝐀𝐍-XMD',
+                'User-Agent': 'DEX-TECH-BOT',
                 'Accept': 'application/vnd.github.v3+json'
             },
             timeout: 10000
@@ -148,7 +148,7 @@ async function checkForUpdates() {
         try {
             const commitDetailResponse = await axios.get(`${GITHUB_COMMITS_URL}/${latestCommit.sha}`, {
                 headers: {
-                    'User-Agent': '𝐗𝐀𝐅𝐒𝐀𝐍-XMD'
+                    'User-Agent': 'DEX-TECH-BOT'
                 },
                 timeout: 5000
             });
