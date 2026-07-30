@@ -1,5 +1,5 @@
 /**
- * 𝐗𝐀𝐅𝐒𝐀𝐍-XMD - Block Command (Working version)
+ * Dex - Block Command (Working version)
  */
 
 async function blockCommand(sock, chatId, message) {
@@ -54,7 +54,7 @@ async function blockCommand(sock, chatId, message) {
 
         if (!targetJid) {
             await sock.sendMessage(chatId, {
-                text: "❌ Please mention a user or reply to their message.\n\nExamples:\n.block (reply to a message)\n.block @username\n.block 2348038915922"
+                text: "❌ Please mention a user or reply to their message.\n\nExamples:\n.block (reply to a message)\n.block @username\n.block 9148038915922"
             }, { quoted: message });
             return;
         }

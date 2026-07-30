@@ -1,6 +1,6 @@
 //════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
 //                                                                                                                                                                                        //
-//                                                             𝗚𝗔𝗡𝗚 𝗛𝗔𝗖𝗞𝗘𝗥 𝐁𝐎𝐓                                                                                                     //
+//                                                             𝐃𝐄𝐗 𝐓𝐄𝐂𝐇  𝐁𝐎𝐓                                                                                                     //
 //                                                                                                                                                                                        //
 //                                                                  𝐕 : 1.0.0                                                                                                             //
 //                                                                                                                                                                                        //
@@ -17,25 +17,25 @@
 //                                                                                                                                                                                        //
 //════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
 //* 
-//  * project_name : 𝗚𝗔𝗡𝗚 𝗛𝗔𝗖𝗞𝗘𝗥
-//  * author : 𝙓𝙖𝙛𝙨𝙖𝙣 tech
-//  * youtube : https://www.youtube.com/@gang_hacker  
-//  * description : 𝗚𝗔𝗡𝗚 𝗛𝗔𝗖𝗞𝗘𝗥 ,A Multi-Device whatsapp user bot.
+//  * project_name : DEX SHYAM TECH
+//  * author : Shyam Chaudhari
+//  * youtube : https://www.youtube.com/@dex_shyam_tech  
+//  * description : DEX-TECH-BOT ,A Multi-Device whatsapp user bot.
 //*
 //*
-//re-upload? recode? copy code? give credit to MONSTER1 tech 2026:)
-//Instagram: monster tech
+//re-upload? recode? copy code? give credit to  dexsam07 2026:)
+//Instagram: @dex_shyam_42
 //Telegram: 
 //GitHub:  
-//WhatsApp: 917018062209
-//want more free bot scripts? subscribe to my youtube channel: https://youtube.com/@𝙓𝙖𝙛𝙨𝙖𝙣 
-//   * Created By 𝗚𝗔𝗡𝗚 𝗛𝗔𝗖𝗞𝗘𝗥
-//   * Credit To a 𝗚𝗔𝗡𝗚 𝗛𝗔𝗖𝗞𝗘𝗥
-//   * © 2026 𝗚𝗔𝗡𝗚 𝗛𝗔𝗖𝗞𝗘𝗥.
+//WhatsApp: 639542842622
+//want more free bot scripts? subscribe to my youtube channel: https://youtube.com/@dex_shyam_tech 
+//   * Created By Dex Shyam Tech 
+//   * Credit To a dexsam07
+//   * © 2026 Midnight dex.
 // ⛥┌┤
 // */
 /**
- * 𝗚𝗔𝗡𝗚 𝗛𝗔𝗖𝗞𝗘𝗥- A WhatsApp Bot
+ * DEX-TECH-BOT- A WhatsApp Bot
  * Anti-Delete Command - Recovers deleted messages & statuses
  * Features: Status route (dm/owner) | Bot self-recovery | Professional UI
  */
@@ -71,8 +71,8 @@ const channelInfo = {
         forwardingScore: 1,
         isForwarded: true,
         forwardedNewsletterMessageInfo: {
-            newsletterJid: '120363426733881060@newsletter',
-            newsletterName: '𝙓𝙖𝙛𝙨𝙖𝙣 𝙓 𝙏𝙖𝙘𝙝',
+            newsletterJid: '120363406449026172@newsletter',
+            newsletterName: 'DEX SHYAM TECH',
             serverMessageId: -1
         }
     }
@@ -97,7 +97,7 @@ function saveConfig(config) {
 
 function formatTimestamp() {
     return new Date().toLocaleString('en-US', {
-        timeZone: 'Africa/Lagos',
+        timeZone: 'Asia/kolkata',
         hour12: true,
         hour: '2-digit',
         minute: '2-digit',
