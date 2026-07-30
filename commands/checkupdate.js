@@ -9,7 +9,7 @@ const { promisify } = require('util');
 const execAsync = promisify(exec);
 
 // Configuration
-const GITHUB_REPO = 'dexsam07/dex-bot-tech';
+const GITHUB_REPO = 'Dexsam07/dex-tech-bot';
 const GITHUB_API = `https://api.github.com/repos/${GITHUB_REPO}`;
 const GITHUB_COMMITS_URL = `${GITHUB_API}/commits`;
 const GITHUB_MAIN_BRANCH = 'main'; // or 'master'
