@@ -5,7 +5,7 @@
 //════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
 //* 
 //  * command : help / menu
-//  * description : Show interactive menu with all commands
+//  * description : Professional interactive menu with all commands, stats, and bot comparison
 //  * Credit To  DEX SHYAM TECH
 // ⛥┌┤
 // */
@@ -13,24 +13,28 @@
 const fs = require('fs');
 const path = require('path');
 const settings = require('../settings');
-const { getCurrentFont, applyFont } = require('./menufont');
-const { getCurrentStyle } = require('./menustyle');
 
-// ========== UTILITY FUNCTIONS ==========
-function getDeploymentPlatform() {
-    if (process.env.RENDER) return 'Render';
-    if (process.env.CODESPACE_NAME) return 'Codespaces';
-    if (process.env.PANEL_APP) return 'Panel';
-    if (process.env.REPL_SLUG) return 'Replit';
-    if (process.env.KOYEB_APP) return 'Koyeb';
-    if (process.env.FLY_APP_NAME) return 'Fly.io';
-    if (process.env.GLITCH_PROJECT_ID) return 'Glitch';
-    if (process.env.VERCEL) return 'Vercel';
-    if (process.env.HEROKU_APP_NAME) return 'Heroku';
-    if (process.env.RAILWAY_ENVIRONMENT) return 'Railway';
-    return 'Local Machine';
+// ========== SAFE IMPORTS (with fallback) ==========
+let getCurrentFont = () => 1;
+let applyFont = (text) => text;
+let getCurrentStyle = () => 1;
+
+try {
+    const fontModule = require('./menufont');
+    if (fontModule.getCurrentFont) getCurrentFont = fontModule.getCurrentFont;
+    if (fontModule.applyFont) applyFont = fontModule.applyFont;
+} catch (e) {
+    console.warn('⚠️ menufont.js not loaded, using defaults');
 }
 
+try {
+    const styleModule = require('./menustyle');
+    if (styleModule.getCurrentStyle) getCurrentStyle = styleModule.getCurrentStyle;
+} catch (e) {
+    console.warn('⚠️ menustyle.js not loaded, using default style');
+}
+
+// ========== CONTEXT INFO (Dynamic) ==========
 function getContextInfo() {
     return {
         contextInfo: {
@@ -45,84 +49,21 @@ function getContextInfo() {
     };
 }
 
-// ========== STATS MANAGEMENT (Atomic) ==========
-function saveDataAtomic(file, data) {
-    try {
-        const tempFile = file + '.tmp';
-        fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), 'utf8');
-        fs.renameSync(tempFile, file);
-        return true;
-    } catch (error) {
-        console.error(`❌ Error saving ${file}:`, error.message);
-        try { fs.unlinkSync(file + '.tmp'); } catch (_) {}
-        return false;
-    }
+// ========== UTILITY FUNCTIONS (with fallbacks) ==========
+function getDeploymentPlatform() {
+    if (process.env.RENDER) return 'Render';
+    if (process.env.CODESPACE_NAME) return 'Codespaces';
+    if (process.env.PANEL_APP) return 'Panel';
+    if (process.env.REPL_SLUG) return 'Replit';
+    if (process.env.KOYEB_APP) return 'Koyeb';
+    if (process.env.FLY_APP_NAME) return 'Fly.io';
+    if (process.env.GLITCH_PROJECT_ID) return 'Glitch';
+    if (process.env.VERCEL) return 'Vercel';
+    if (process.env.HEROKU_APP_NAME) return 'Heroku';
+    if (process.env.RAILWAY_ENVIRONMENT) return 'Railway';
+    return 'Local Machine';
 }
 
-function loadStats() {
-    const statsPath = path.join(__dirname, '../data/userStats.json');
-    const defaultStats = { totalUsers: 0, activeUsers: {}, platforms: {}, users: {}, lastUpdated: Date.now(), botName: settings.botName || 'Dex Shyam Tech', version: settings.version || '1.0.0' };
-    try {
-        if (fs.existsSync(statsPath)) {
-            const raw = fs.readFileSync(statsPath, 'utf8');
-            return JSON.parse(raw);
-        }
-    } catch (e) { console.error('⚠️ Stats file corrupt, resetting'); }
-    return defaultStats;
-}
-
-function updateUserStats(userJid, platform) {
-    const statsPath = path.join(__dirname, '../data/userStats.json');
-    const dataDir = path.dirname(statsPath);
-    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-    
-    let stats = loadStats();
-    const userPhone = userJid.split('@')[0];
-    const userKey = `user_${userPhone}`;
-    const currentTime = Date.now();
-    const isNewUser = !stats.users[userKey];
-    
-    stats.users[userKey] = {
-        phone: userPhone,
-        platform: platform,
-        lastActive: currentTime,
-        firstSeen: isNewUser ? currentTime : (stats.users[userKey]?.firstSeen || currentTime),
-        totalUses: (stats.users[userKey]?.totalUses || 0) + 1
-    };
-    
-    if (isNewUser) {
-        stats.platforms[platform] = (stats.platforms[platform] || 0) + 1;
-        stats.totalUsers = Object.keys(stats.users).length;
-    }
-    
-    stats.activeUsers[userKey] = currentTime;
-    const thirtyMinutesAgo = currentTime - (30 * 60 * 1000);
-    Object.keys(stats.activeUsers).forEach(key => {
-        if (stats.activeUsers[key] < thirtyMinutesAgo) delete stats.activeUsers[key];
-    });
-    stats.lastUpdated = currentTime;
-    
-    saveDataAtomic(statsPath, stats);
-    return { totalUsers: stats.totalUsers, activeUsers: Object.keys(stats.activeUsers).length, platforms: stats.platforms };
-}
-
-function getUserStats() {
-    const stats = loadStats();
-    const currentTime = Date.now();
-    const thirtyMinutesAgo = currentTime - (30 * 60 * 1000);
-    if (stats.activeUsers) {
-        Object.keys(stats.activeUsers).forEach(key => {
-            if (stats.activeUsers[key] < thirtyMinutesAgo) delete stats.activeUsers[key];
-        });
-    }
-    return {
-        totalUsers: stats.totalUsers || Object.keys(stats.users || {}).length,
-        activeUsers: Object.keys(stats.activeUsers || {}).length,
-        platforms: stats.platforms || {}
-    };
-}
-
-// ========== HELPERS ==========
 function getPrefix() { return settings.prefix || '.'; }
 
 function getBotMode() {
@@ -196,22 +137,79 @@ function getLocalizedTime() {
     } catch (e) { return new Date().toLocaleString(); }
 }
 
-async function sendMenuAudio(sock, chatId, message) {
+// ========== STATS (Atomic) ==========
+function saveDataAtomic(file, data) {
     try {
-        const audioPath = path.join(__dirname, '../assets/menu_audio.mp3');
-        if (fs.existsSync(audioPath)) {
-            await sock.sendMessage(chatId, {
-                audio: fs.readFileSync(audioPath),
-                mimetype: 'audio/mpeg',
-                ptt: false
-            }, { quoted: message });
-            return true;
-        }
+        const tempFile = file + '.tmp';
+        fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), 'utf8');
+        fs.renameSync(tempFile, file);
+        return true;
+    } catch (error) {
+        console.error(`❌ Error saving ${file}:`, error.message);
+        try { fs.unlinkSync(file + '.tmp'); } catch (_) {}
         return false;
-    } catch (e) { return false; }
+    }
 }
 
-// ========== BUILD MENU FOR STYLES 2-12 ==========
+function loadStats() {
+    const statsPath = path.join(__dirname, '../data/userStats.json');
+    const defaultStats = { totalUsers: 0, activeUsers: {}, platforms: {}, users: {}, lastUpdated: Date.now(), botName: settings.botName || 'Dex Shyam Tech', version: settings.version || '1.0.0' };
+    try {
+        if (fs.existsSync(statsPath)) {
+            const raw = fs.readFileSync(statsPath, 'utf8');
+            return JSON.parse(raw);
+        }
+    } catch (e) { console.error('⚠️ Stats file corrupt, resetting'); }
+    return defaultStats;
+}
+
+function updateUserStats(userJid, platform) {
+    const statsPath = path.join(__dirname, '../data/userStats.json');
+    const dataDir = path.dirname(statsPath);
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    let stats = loadStats();
+    const userPhone = userJid.split('@')[0];
+    const userKey = `user_${userPhone}`;
+    const currentTime = Date.now();
+    const isNewUser = !stats.users[userKey];
+    stats.users[userKey] = {
+        phone: userPhone,
+        platform: platform,
+        lastActive: currentTime,
+        firstSeen: isNewUser ? currentTime : (stats.users[userKey]?.firstSeen || currentTime),
+        totalUses: (stats.users[userKey]?.totalUses || 0) + 1
+    };
+    if (isNewUser) {
+        stats.platforms[platform] = (stats.platforms[platform] || 0) + 1;
+        stats.totalUsers = Object.keys(stats.users).length;
+    }
+    stats.activeUsers[userKey] = currentTime;
+    const thirtyMinutesAgo = currentTime - (30 * 60 * 1000);
+    Object.keys(stats.activeUsers).forEach(key => {
+        if (stats.activeUsers[key] < thirtyMinutesAgo) delete stats.activeUsers[key];
+    });
+    stats.lastUpdated = currentTime;
+    saveDataAtomic(statsPath, stats);
+    return { totalUsers: stats.totalUsers, activeUsers: Object.keys(stats.activeUsers).length, platforms: stats.platforms };
+}
+
+function getUserStats() {
+    const stats = loadStats();
+    const currentTime = Date.now();
+    const thirtyMinutesAgo = currentTime - (30 * 60 * 1000);
+    if (stats.activeUsers) {
+        Object.keys(stats.activeUsers).forEach(key => {
+            if (stats.activeUsers[key] < thirtyMinutesAgo) delete stats.activeUsers[key];
+        });
+    }
+    return {
+        totalUsers: stats.totalUsers || Object.keys(stats.users || {}).length,
+        activeUsers: Object.keys(stats.activeUsers || {}).length,
+        platforms: stats.platforms || {}
+    };
+}
+
+// ========== BUILD MENU TEXT (Dynamic Style) ==========
 function buildMenu(styleId, data) {
     const { userName, greeting, prefix, totalCommands, stats, dayInfo, currentBotMode, menuType, userPlatform, getLocalizedTime } = data;
 
@@ -269,7 +267,6 @@ function buildMenu(styleId, data) {
     for (const l of infoLines) menu += s.line + ' ' + l + '\n';
     menu += s.bot + '\n\n';
     menu += `   ⬇️ ALL COMMANDS ⬇️\n\n`;
-    
     for (const [title, cmds] of allCommands) {
         menu += s.secHdr(title) + '\n';
         for (const cmd of cmds) menu += s.bul + cmd + '\n';
@@ -279,51 +276,69 @@ function buildMenu(styleId, data) {
     menu += `📊 Local Stats: ${stats.activeUsers} active now, ${stats.totalUsers} total users\n\n`;
     menu += `${greeting.emoji} ${greeting.greeting}, @${userName}! ${greeting.message}\n\n`;
     menu += `⬇️Join our channel below for updates⬇️`;
-
     return menu;
 }
 
-// ========== COMMAND ==========
-module.exports = {
-    name: 'help',  // also works with 'menu'
-    category: 'General',
-    description: 'Show interactive menu with all commands',
-    groupOnly: false,
-    ownerOnly: false,
+// ========== COMPARE WITH GAAJU-XMD (Optional Feature) ==========
+function getComparisonText() {
+    return `
+╭──❍「 BOT COMPARISON 」❍
+├• Feature         | Dex-Tech-Bot | GAAJU-XMD
+├─────────────────────────────────────
+├• Baileys        | ✅ rc.15    | ✅ rc.15
+├• Session String  | ✅          | ✅
+├• Atomic Saves    | ✅          | ❌
+├• Dynamic Newsl.  | ✅          | ❌
+├• India Timezone  | ✅          | ❌
+├• Admin Cache     | ✅          | ❌
+├• Smart Lock      | ✅          | ❌
+├• Code Quality    | ⭐⭐⭐⭐⭐     | ⭐⭐
+├• Security        | ⭐⭐⭐⭐⭐     | ⭐⭐⭐
+╰─────────────────────────────────────
+✅ Dex-Tech-Bot is more advanced, stable & secure.
+`;
+}
 
-    execute: async (sock, message, args, senderId, chatId) => {
+// ========== MAIN HELP FUNCTION ==========
+async function helpCommand(sock, chatId, message, channelLink) {
+    try {
+        const senderId = message.key.participant || message.key.remoteJid;
+        const userName = await getUserName(sock, senderId);
+        const greeting = getTimeBasedGreeting();
+        const dayInfo = getDayWithEmoji();
+        const currentBotMode = getBotMode();
+        const prefix = getPrefix();
+        const userPlatform = getDeploymentPlatform();
+        const totalCommands = countTotalCommands();
+        const stats = getUserStats();
+        let fontId = 1;
+        let styleId = 1;
+        try { fontId = getCurrentFont(); } catch (e) {}
+        try { styleId = getCurrentStyle(); } catch (e) {}
+
+        // Update stats
+        updateUserStats(senderId, userPlatform);
+
+        // Determine media type (with safe file check)
+        let menuType = 'TEXT';
+        const imagePath = path.join(__dirname, '../assets/bot_image.jpg');
+        const videoPath = path.join(__dirname, '../assets/menu_video.mp4');
+        const imageExists = fs.existsSync(imagePath);
+        const videoExists = fs.existsSync(videoPath);
+        if (imageExists && videoExists) menuType = Math.random() < 0.5 ? 'IMAGE' : 'VIDEO';
+        else if (imageExists) menuType = 'IMAGE';
+        else if (videoExists) menuType = 'VIDEO';
+
+        const getLocalized = getLocalizedTime;
+
+        let menuText;
+
+        // Style 1: Classic hardcoded menu (with your branding) - FALLBACK SAFE
         try {
-            const prefix = getPrefix();
-            const userName = await getUserName(sock, senderId);
-            const greeting = getTimeBasedGreeting();
-            const dayInfo = getDayWithEmoji();
-            const currentBotMode = getBotMode();
-            const userPlatform = getDeploymentPlatform();
-            const totalCommands = countTotalCommands();
-            const stats = getUserStats();
-            const fontId = getCurrentFont();
-            const styleId = getCurrentStyle();
-
-            // Update stats (async)
-            updateUserStats(senderId, userPlatform);
-
-            // Determine media type
-            let menuType = 'TEXT';
-            const imagePath = path.join(__dirname, '../assets/bot_image.jpg');
-            const videoPath = path.join(__dirname, '../assets/menu_video.mp4');
-            if (fs.existsSync(imagePath) && fs.existsSync(videoPath)) menuType = Math.random() < 0.5 ? 'IMAGE' : 'VIDEO';
-            else if (fs.existsSync(imagePath)) menuType = 'IMAGE';
-            else if (fs.existsSync(videoPath)) menuType = 'VIDEO';
-
-            const getLocalized = getLocalizedTime;
-
-            let menuText;
-
-            // Style 1: Classic hardcoded menu (updated with dynamic values)
             if (styleId === 1) {
                 const botName = settings.botName || 'Dex Shyam Tech';
                 const botOwner = settings.botOwner || 'Shyam Choudhari';
-                const channelLink = global.ytch || 'https://www.youtube.com/@dex_shyam_tech';
+                const ytChannel = settings.ytChannel || 'Dex Shyam Tech';
                 const ownerNumber = settings.ownerNumber || '917384287404';
                 const timezone = settings.timezone || 'Asia/Kolkata';
                 const totalCmds = totalCommands;
@@ -338,7 +353,6 @@ module.exports = {
                     ? platformEntries.map(([p, c]) => `│     ${getPlatformEmoji(p)} ${p}: ${c} users`).join('\n')
                     : '│     📊 No platform data yet';
 
-                // User usage info
                 const statsData = loadStats();
                 const userKey = `user_${senderId.split('@')[0]}`;
                 const userUsage = statsData.users?.[userKey]?.totalUses || 1;
@@ -346,6 +360,7 @@ module.exports = {
 
                 const now = getLocalized();
 
+                // Build classic menu (long, but safe)
                 menuText = `
 👋 Hello @${userName}! ${greeting.message}
 
@@ -356,7 +371,7 @@ ${greeting.greeting}! Here's your menu:
 │ 🤖 Bot: ${botName}
 │ 🧠 Version: ${settings.version || '1.0.0'}
 │ 👑 Owner: ${botOwner}
-│ 📺 Channel: ${channelLink}
+│ 📺 Channel: ${ytChannel}
 │ 📞 Number: +${ownerNumber}
 │ 📥 Prefix: ${prefix}
 │ 🎨 Style: ${styleId}
@@ -662,22 +677,41 @@ ${greeting.emoji} ${greeting.greeting}, @${userName}! ${greeting.message}
                 };
                 menuText = buildMenu(styleId, menuData);
             }
+        } catch (buildError) {
+            console.error('❌ Menu build error, using fallback:', buildError.message);
+            // Minimal fallback menu
+            menuText = `👋 Hello @${userName}! ${greeting.message}\n\n${greeting.greeting}! Here's your menu:\n\n` +
+                `⚠️ Full menu temporarily unavailable. Use:\n` +
+                `${prefix}ping - Check speed\n` +
+                `${prefix}alive - Bot status\n` +
+                `${prefix}owner - Contact owner\n` +
+                `${prefix}help - Show this menu\n` +
+                `\n🤖 ${settings.botName || '𝐃𝐄𝐗 𝐓𝐄𝐂𝐇 𝐁𝐎𝐓'}`;
+        }
 
-            // Apply font
-            const finalMessage = applyFont(menuText, fontId);
+        // Apply font (safe)
+        let finalMessage = menuText;
+        try {
+            if (typeof applyFont === 'function') {
+                finalMessage = applyFont(menuText, fontId);
+            }
+        } catch (fontError) {
+            console.warn('⚠️ Font apply failed, using plain text');
+        }
 
-            // Prepare media and send
-            const context = getContextInfo();
-            const mentions = [senderId];
+        // Send message with media fallback
+        const context = getContextInfo();
+        const mentions = [senderId];
 
-            if (menuType === 'IMAGE' && fs.existsSync(imagePath)) {
+        try {
+            if (menuType === 'IMAGE' && imageExists) {
                 await sock.sendMessage(chatId, {
                     image: fs.readFileSync(imagePath),
                     caption: finalMessage,
                     mentions: mentions,
                     ...context
                 }, { quoted: message });
-            } else if (menuType === 'VIDEO' && fs.existsSync(videoPath)) {
+            } else if (menuType === 'VIDEO' && videoExists) {
                 await sock.sendMessage(chatId, {
                     video: fs.readFileSync(videoPath),
                     caption: finalMessage,
@@ -691,16 +725,40 @@ ${greeting.emoji} ${greeting.greeting}, @${userName}! ${greeting.message}
                     ...context
                 }, { quoted: message });
             }
-
-            // Optional audio
-            await sendMenuAudio(sock, chatId, message);
-
-        } catch (error) {
-            console.error('❌ Menu/Help command error:', error.message);
+        } catch (mediaError) {
+            console.error('⚠️ Media send failed, sending text only:', mediaError.message);
             await sock.sendMessage(chatId, {
-                text: '❌ Failed to load menu. Please try again.',
-                ...getContextInfo()
+                text: finalMessage,
+                mentions: mentions,
+                ...context
             }, { quoted: message });
         }
+
+        // Optional audio (non-critical)
+        try {
+            const audioPath = path.join(__dirname, '../assets/menu_audio.mp3');
+            if (fs.existsSync(audioPath)) {
+                await sock.sendMessage(chatId, {
+                    audio: fs.readFileSync(audioPath),
+                    mimetype: 'audio/mpeg',
+                    ptt: false
+                }, { quoted: message });
+            }
+        } catch (audioError) {
+            // Ignore audio failure
+        }
+
+    } catch (error) {
+        console.error('❌ Help command fatal error:', error.message);
+        try {
+            await sock.sendMessage(chatId, {
+                text: '❌ Failed to load menu. Please try again later.',
+                ...getContextInfo()
+            }, { quoted: message });
+        } catch (finalError) {
+            await sock.sendMessage(chatId, { text: '❌ Menu temporarily unavailable. Please try again later.' });
+        }
     }
-};
+}
+
+module.exports = helpCommand;
