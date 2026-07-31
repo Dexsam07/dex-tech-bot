@@ -68,10 +68,23 @@ if (!fs.existsSync(SESSION_DIR)) {
 
 if (process.env.SESSION_ID) {
     try {
-        const decoded = Buffer.from(process.env.SESSION_ID, 'base64').toString('utf-8');
-        JSON.parse(decoded);
+        let sessionId = process.env.SESSION_ID.trim();
+        
+        // ✅ Auto-strip common prefixes
+        const prefixes = ['DEX~', 'SHYAM-MD:', 'SESSION:'];
+        for (const prefix of prefixes) {
+            if (sessionId.startsWith(prefix)) {
+                sessionId = sessionId.slice(prefix.length);
+                console.log(`🔧 Stripped prefix: ${prefix}`);
+                break;
+            }
+        }
+        
+        // Try to decode as Base64
+        const decoded = Buffer.from(sessionId, 'base64').toString('utf-8');
+        JSON.parse(decoded); // Validate JSON
         fs.writeFileSync(CREDS_FILE, decoded);
-        console.log('✅ Session restored from SESSION_ID (Fast Connect Mode)');
+        console.log('✅ Session restored successfully (Fast Connect Mode)');
     } catch (e) {
         console.log('⚠️ Invalid SESSION_ID, falling back to file session');
     }
