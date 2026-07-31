@@ -16,7 +16,7 @@ const settings = require('../settings');
 const isOwnerOrSudo = require('../lib/isOwner');
 const moment = require('moment-timezone');
 
-// ========== CONTEXT INFO (Dynamic from settings) ==========
+// ========== CONTEXT INFO (Dynamic) ==========
 function getContextInfo() {
     return {
         contextInfo: {
@@ -31,7 +31,7 @@ function getContextInfo() {
     };
 }
 
-// ========== FORMAT TIME (from settings) ==========
+// ========== FORMAT TIME ==========
 function formatBotTime() {
     try {
         const timezone = settings.timezone || 'Asia/Kolkata';
@@ -53,10 +53,13 @@ module.exports = {
     groupOnly: false,
     ownerOnly: true,
 
-    execute: async (sock, message, args, senderId, chatId) => {
+    // ✅ FIXED: Signature matches main.js call (sock, chatId, message, args)
+    execute: async (sock, chatId, message, args) => {
         try {
-            // ✅ Owner check (extra security)
+            // ✅ Extract senderId from message
+            const senderId = message.key.participant || message.key.remoteJid;
             const isOwner = await isOwnerOrSudo(senderId, sock, chatId);
+
             if (!isOwner && !message.key.fromMe) {
                 await sock.sendMessage(chatId, {
                     text: '❌ Only bot owner can restart the bot!',

@@ -1,49 +1,20 @@
 //════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
-//                                                                                                                                                                                        //
 //                                                             𝐃𝐄𝐗 𝐓𝐄𝐂𝐇  𝐁𝐎𝐓                                                                                                     //
-//                                                                                                                                                                                        //
 //                                                                  𝐕 : 1.0.0                                                                                                             //
-//                                                                                                                                                                                        //
-//                                                                                                                                                                                        //
-//                ██╗    ██╗ █████╗ ██╗     ██╗  ██╗   ██╗   ██╗ █████╗ ██╗   ██╗████████╗███████╗ ██████╗██╗  ██╗      ███╗   ███╗██████╗                                 //
-//                ██║    ██║██╔══██╗██║     ██║  ╚██╗ ██╔╝   ██║██╔══██╗╚██╗ ██╔╝╚══██╔══╝██╔════╝██╔════╝██║  ██║      ████╗ ████║██╔══██╗                              //
-//                ██║ █╗ ██║███████║██║     ██║   ╚████╔╝    ██║███████║ ╚████╔╝    ██║   █████╗  ██║     ███████║█████╗██╔████╔██║██║  ██║                               //
-//                ██║███╗██║██╔══██║██║     ██║    ╚██╔╝██   ██║██╔══██║  ╚██╔╝     ██║   ██╔══╝  ██║     ██╔══██║╚════╝██║╚██╔╝██║██║  ██║                               //
-//                ╚███╔███╔╝██║  ██║███████╗███████╗██║ ╚█████╔╝██║  ██║   ██║      ██║   ███████╗╚██████╗██║  ██║      ██║ ╚═╝ ██║██████╔╝                              //
-//                 ╚══╝╚══╝ ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚════╝ ╚═╝  ╚═╝   ╚═╝      ╚═╝   ╚══════╝ ╚═════╝╚═╝  ╚═╝      ╚═╝     ╚═╝╚═════╝                                 //
-//                                                                                                                                                                                        //
 //                                                                 𝐂𝐎𝐏𝐘𝐑𝐈𝐆𝐇𝐓 2026                                                                                                        //
-//                                                                                                                                                                                        //
-//                                                                                                                                                                                        //
 //════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════//
 //* 
-//  * project_name : DEX SHYAM TECH
-//  * author : Shyam Chaudhari
-//  * youtube : https://www.youtube.com/@dex_shyam_tech  
-//  * description : DEX-TECH-BOT ,A Multi-Device whatsapp user bot.
-//*
-//*
-//re-upload? recode? copy code? give credit to  dexsam07 2026:)
-//Instagram: @dex_shyam_42
-//Telegram: 
-//GitHub:  
-//WhatsApp: 639542842622
-//want more free bot scripts? subscribe to my youtube channel: https://youtube.com/@dex_shyam_tech 
-//   * Created By Dex Shyam Tech 
-//   * Credit To a dexsam07
-//   * © 2026 Midnight dex.
+//  * file : antidelete.js (WITH DEBUG LOGS)
+//  * description : Recovers deleted messages & statuses
+//  * Credit To  DEX SHYAM TECH
 // ⛥┌┤
 // */
-/**
- * DEX-TECH-BOT- A WhatsApp Bot
- * Anti-Delete Command - Recovers deleted messages & statuses
- * Features: Status route (dm/owner) | Bot self-recovery | Professional UI
- */
 const fs = require('fs');
 const path = require('path');
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 const { writeFile } = require('fs/promises');
 const isOwnerOrSudo = require('../lib/isOwner');
+const settings = require('../settings');
 
 const CONFIG_PATH = path.join(__dirname, '../data/antidelete.json');
 const TEMP_MEDIA_DIR = path.join(__dirname, '../tmp/antidelete');
@@ -54,7 +25,7 @@ const dataDir = path.join(__dirname, '../data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 if (!fs.existsSync(TEMP_MEDIA_DIR)) fs.mkdirSync(TEMP_MEDIA_DIR, { recursive: true });
 
-// Auto-clean temp files every 10 seconds (deletes files older than 30 seconds)
+// Auto-clean temp files every 10 seconds
 setInterval(() => {
     try {
         const files = fs.readdirSync(TEMP_MEDIA_DIR);
@@ -66,17 +37,20 @@ setInterval(() => {
     } catch (e) {}
 }, 10000);
 
-const channelInfo = {
-    contextInfo: {
-        forwardingScore: 1,
-        isForwarded: true,
-        forwardedNewsletterMessageInfo: {
-            newsletterJid: '120363406449026172@newsletter',
-            newsletterName: 'DEX SHYAM TECH',
-            serverMessageId: -1
+// ========== DYNAMIC CONTEXT INFO ==========
+function getContextInfo() {
+    return {
+        contextInfo: {
+            forwardingScore: 1,
+            isForwarded: true,
+            forwardedNewsletterMessageInfo: {
+                newsletterJid: settings.newsletterJid || '120363406449026172@newsletter',
+                newsletterName: settings.newsletterName || 'Dex Shyam Tech',
+                serverMessageId: -1
+            }
         }
-    }
-};
+    };
+}
 
 // ═══════════════════════════════════════
 // CONFIGURATION
@@ -97,7 +71,7 @@ function saveConfig(config) {
 
 function formatTimestamp() {
     return new Date().toLocaleString('en-US', {
-        timeZone: 'Asia/kolkata',
+        timeZone: settings.timezone || 'Asia/Kolkata',
         hour12: true,
         hour: '2-digit',
         minute: '2-digit',
@@ -132,17 +106,25 @@ async function storeMessage(sock, message) {
         const sender = message.key.participant || message.key.remoteJid;
         const isGroup = message.key.remoteJid.endsWith('@g.us');
         const isStatus = message.key.remoteJid === 'status@broadcast';
-        const groupJid = isGroup ? message.key.remoteJid : null;
         const botJid = sock.user.id.split(':')[0] + '@s.whatsapp.net';
 
-        if (isStatus && !config.statusEnabled) return;
-        if (!isStatus && !config.enabled) return;
+        // ✅ DEBUG LOG: Check if message is being considered
+        console.log(`📦 [STORAGE CHECK] ID: ${messageId} | isStatus: ${isStatus} | enabled: ${config.enabled} | statusEnabled: ${config.statusEnabled}`);
+
+        if (isStatus && !config.statusEnabled) {
+            console.log(`⏭️ [STORAGE SKIP] Status disabled`);
+            return;
+        }
+        if (!isStatus && !config.enabled) {
+            console.log(`⏭️ [STORAGE SKIP] Message recovery disabled`);
+            return;
+        }
         if (isStatus && sender === botJid) return;
 
         let groupName = '';
         if (isGroup) {
             try {
-                const metadata = await sock.groupMetadata(groupJid);
+                const metadata = await sock.groupMetadata(message.key.remoteJid);
                 groupName = metadata.subject || 'Group';
             } catch (e) {}
         }
@@ -215,7 +197,7 @@ async function storeMessage(sock, message) {
             sender,
             isGroup,
             isStatus,
-            group: groupJid,
+            group: message.key.remoteJid,
             groupName,
             remoteJid: message.key.remoteJid,
             timestamp: Date.now(),
@@ -225,11 +207,13 @@ async function storeMessage(sock, message) {
 
         if (isStatus) {
             statusStore.set(messageId, storeData);
+            console.log(`✅ [STORED STATUS] ${messageId}`);
         } else {
             messageStore.set(messageId, storeData);
+            console.log(`✅ [STORED MSG] ${messageId} | Type: ${storeData.type}`);
         }
     } catch (err) {
-        console.error('Store error:', err.message);
+        console.error('❌ Store error:', err.message);
     }
 }
 
@@ -246,6 +230,8 @@ async function handleMessageRevocation(sock, revocationMessage) {
         if (!revokedKey?.id) return;
 
         const messageId = revokedKey.id;
+        console.log(`🔄 [REVOKE DETECTED] ID: ${messageId}`);
+
         const isBotDeleting = revocationMessage.key.fromMe === true;
         const rawDeleter = revocationMessage.key.participant || revocationMessage.key.remoteJid;
         const isStatus = revokedKey.remoteJid === 'status@broadcast';
@@ -253,20 +239,25 @@ async function handleMessageRevocation(sock, revocationMessage) {
 
         let original = messageStore.get(messageId);
         if (!original) original = statusStore.get(messageId);
-        if (!original) return;
+        
+        if (!original) {
+            console.log(`⚠️ [REVOKE MISS] No stored message found for ID: ${messageId}`);
+            return;
+        }
+
+        console.log(`✅ [REVOKE FOUND] Recovering: ${original.type}`);
 
         if (isStatus && !config.statusEnabled) return;
         if (!isStatus && !config.enabled) return;
 
         const botJid = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-        const botName = '𝙓𝙖𝙛𝙨𝙖𝙣 -XMD';
+        const botName = settings.botName || 'Dex Shyam Tech';
 
         const deleterName = isBotDeleting ? `${botName} (Bot)` : `@${rawDeleter.split('@')[0]}`;
         const deleterMention = isBotDeleting ? botJid : rawDeleter;
         const senderName = `@${original.sender.split('@')[0]}`;
         const senderMention = original.sender;
 
-        // Determine target chat using stored remoteJid for correct routing
         let targetChat;
         if (isStatus) {
             targetChat = config.statusRoute === 'owner' ? original.sender : botJid;
@@ -276,14 +267,11 @@ async function handleMessageRevocation(sock, revocationMessage) {
             targetChat = config.route.private === 'dm' ? botJid : original.remoteJid;
         }
 
-        const time = formatTimestamp();
-        const chatType = isStatus
-            ? 'Status'
-            : isGroup
-                ? `Group • ${original.groupName || 'Unknown'}`
-                : 'Private';
+        console.log(`📍 [RECOVER TARGET] ${targetChat}`);
 
-        // Build recovery message
+        const time = formatTimestamp();
+        const chatType = isStatus ? 'Status' : isGroup ? `Group • ${original.groupName || 'Unknown'}` : 'Private';
+
         let recoveryText = `╭──❍「 *RECOVERED* 」❍\n`;
         recoveryText += `├• 👤 From: ${senderName}\n`;
         recoveryText += `├• 🗑️ By: ${deleterName}\n`;
@@ -296,23 +284,25 @@ async function handleMessageRevocation(sock, revocationMessage) {
         recoveryText += `╰───★─☆─♪♪─❍\n\n`;
         recoveryText += `╭──❍「 *${botName}* 」❍\n╰───★─☆─♪♪─❍`;
 
-        // Send recovery
+        const context = getContextInfo();
+
         if (original.mediaType && fs.existsSync(original.mediaPath)) {
-            let sentMedia;
             try {
                 switch (original.mediaType) {
                     case 'image':
                         await sock.sendMessage(targetChat, {
                             image: { url: original.mediaPath },
                             caption: recoveryText,
-                            mentions: [senderMention, deleterMention]
+                            mentions: [senderMention, deleterMention],
+                            ...context
                         });
                         break;
                     case 'video':
                         await sock.sendMessage(targetChat, {
                             video: { url: original.mediaPath },
                             caption: recoveryText,
-                            mentions: [senderMention, deleterMention]
+                            mentions: [senderMention, deleterMention],
+                            ...context
                         });
                         break;
                     case 'document':
@@ -320,59 +310,55 @@ async function handleMessageRevocation(sock, revocationMessage) {
                             document: { url: original.mediaPath },
                             fileName: original.fileName || 'document',
                             caption: recoveryText,
-                            mentions: [senderMention, deleterMention]
+                            mentions: [senderMention, deleterMention],
+                            ...context
                         });
                         break;
                     case 'audio':
-                        sentMedia = await sock.sendMessage(targetChat, {
-                            audio: { url: original.mediaPath },
-                            mimetype: 'audio/mpeg'
-                        });
-                        await sock.sendMessage(targetChat, {
-                            text: recoveryText,
-                            mentions: [senderMention, deleterMention]
-                        }, { quoted: sentMedia });
-                        break;
                     case 'voice':
-                        sentMedia = await sock.sendMessage(targetChat, {
+                        await sock.sendMessage(targetChat, {
                             audio: { url: original.mediaPath },
-                            mimetype: 'audio/ogg; codecs=opus',
-                            ptt: true
+                            mimetype: original.mediaType === 'voice' ? 'audio/ogg; codecs=opus' : 'audio/mpeg',
+                            ptt: original.mediaType === 'voice'
                         });
                         await sock.sendMessage(targetChat, {
                             text: recoveryText,
-                            mentions: [senderMention, deleterMention]
-                        }, { quoted: sentMedia });
+                            mentions: [senderMention, deleterMention],
+                            ...context
+                        });
                         break;
                     case 'sticker':
-                        sentMedia = await sock.sendMessage(targetChat, {
-                            sticker: { url: original.mediaPath }
+                        await sock.sendMessage(targetChat, {
+                            sticker: { url: original.mediaPath },
+                            ...context
                         });
                         await sock.sendMessage(targetChat, {
                             text: recoveryText,
-                            mentions: [senderMention, deleterMention]
-                        }, { quoted: sentMedia });
+                            mentions: [senderMention, deleterMention],
+                            ...context
+                        });
                         break;
                 }
-            } catch (err) {}
+            } catch (err) { console.error('Media send error:', err); }
             try { fs.unlinkSync(original.mediaPath); } catch (err) {}
         } else {
             await sock.sendMessage(targetChat, {
                 text: recoveryText,
-                mentions: [senderMention, deleterMention]
+                mentions: [senderMention, deleterMention],
+                ...context
             });
         }
 
-        console.log(`✅ Recovered ${original.type} → ${targetChat === botJid ? 'Bot DM' : isGroup ? 'Group' : 'Private Chat'}`);
+        console.log(`✅ Recovered ${original.type} → ${targetChat === botJid ? 'Bot DM' : 'Chat'}`);
         messageStore.delete(messageId);
         statusStore.delete(messageId);
     } catch (err) {
-        console.error('Recovery error:', err.message);
+        console.error('❌ Recovery error:', err.message);
     }
 }
 
 // ═══════════════════════════════════════
-// COMMAND HANDLER
+// COMMAND HANDLER (Unchanged, but using dynamic channel)
 // ═══════════════════════════════════════
 
 async function handleAntideleteCommand(sock, chatId, message, args) {
@@ -382,7 +368,7 @@ async function handleAntideleteCommand(sock, chatId, message, args) {
         if (!isOwner) {
             await sock.sendMessage(chatId, {
                 text: '❌ This command is only available for the owner!',
-                ...channelInfo
+                ...getContextInfo()
             });
             return;
         }
@@ -391,7 +377,6 @@ async function handleAntideleteCommand(sock, chatId, message, args) {
         if (!Array.isArray(args)) args = args ? [args] : [];
         const cmd = args[0]?.toLowerCase();
 
-        // Show settings menu
         if (!cmd) {
             await sock.sendMessage(chatId, {
                 text: `🛡️ *ANTI-DELETE SETTINGS*\n\n` +
@@ -413,191 +398,46 @@ async function handleAntideleteCommand(sock, chatId, message, args) {
                       `└ .antidelete private chat - Private recovery to chat\n` +
                       `└ .antidelete group chat - Group recovery to group\n` +
                       `└ .antidelete group dm - Group recovery to Bot DM\n\n` +
-                      `━━━━━━━━━━━━━━━━━━━━\n` +
-                      `💡 *Example:*\n` +
-                      `└ .antidelete on\n` +
-                      `└ .antidelete statusroute owner`,
-                ...channelInfo
+                      `💡 *Example:* .antidelete on`,
+                ...getContextInfo()
             }, { quoted: message });
             return;
         }
 
-        // Toggle message recovery
         if (cmd === 'on') {
-            if (config.enabled) {
-                await sock.sendMessage(chatId, {
-                    text: `⚠️ *ALREADY ENABLED*\n\n━━━━━━━━━━━━━━━━━━━━\n🛡️ Message recovery is already *ON*.\n\n💡 Use .antidelete off to disable.`,
-                    ...channelInfo
-                });
-                return;
-            }
+            if (config.enabled) { await sock.sendMessage(chatId, { text: '⚠️ Already ON.', ...getContextInfo() }); return; }
             config.enabled = true;
             saveConfig(config);
-            await sock.sendMessage(chatId, {
-                text: `✅ *MESSAGE RECOVERY ENABLED*\n\n━━━━━━━━━━━━━━━━━━━━\n📌 Deleted messages will be recovered.\n📩 Private: ${config.route.private === 'dm' ? 'Bot DM' : 'Original Chat'}\n👥 Group: ${config.route.group === 'chat' ? 'Group Chat' : 'Bot DM'}`,
-                ...channelInfo
-            });
+            await sock.sendMessage(chatId, { text: `✅ *MESSAGE RECOVERY ENABLED*`, ...getContextInfo() });
         }
         else if (cmd === 'off') {
-            if (!config.enabled) {
-                await sock.sendMessage(chatId, {
-                    text: `⚠️ *ALREADY DISABLED*\n\n━━━━━━━━━━━━━━━━━━━━\n🛡️ Message recovery is already *OFF*.\n\n💡 Use .antidelete on to enable.`,
-                    ...channelInfo
-                });
-                return;
-            }
+            if (!config.enabled) { await sock.sendMessage(chatId, { text: '⚠️ Already OFF.', ...getContextInfo() }); return; }
             config.enabled = false;
             saveConfig(config);
-            await sock.sendMessage(chatId, {
-                text: `❌ *MESSAGE RECOVERY DISABLED*\n\n━━━━━━━━━━━━━━━━━━━━\n📌 Deleted messages will no longer be recovered.\n💡 Status recovery is separate: .antidelete status`,
-                ...channelInfo
-            });
+            await sock.sendMessage(chatId, { text: `❌ *MESSAGE RECOVERY DISABLED*`, ...getContextInfo() });
         }
-        // Toggle status recovery
         else if (cmd === 'status') {
             const sub = args[1]?.toLowerCase();
-            if (sub === 'on') {
-                if (config.statusEnabled) {
-                    await sock.sendMessage(chatId, {
-                        text: `⚠️ *ALREADY ENABLED*\n\n━━━━━━━━━━━━━━━━━━━━\n📱 Status recovery is already *ON*.\n\n💡 Use .antidelete status off to disable.`,
-                        ...channelInfo
-                    });
-                    return;
-                }
-                config.statusEnabled = true;
-                saveConfig(config);
-                await sock.sendMessage(chatId, {
-                    text: `✅ *STATUS RECOVERY ENABLED*\n\n━━━━━━━━━━━━━━━━━━━━\n📱 Deleted statuses → ${config.statusRoute === 'dm' ? 'Bot DM' : 'Status Owner DM'}`,
-                    ...channelInfo
-                });
-            }
-            else if (sub === 'off') {
-                if (!config.statusEnabled) {
-                    await sock.sendMessage(chatId, {
-                        text: `⚠️ *ALREADY DISABLED*\n\n━━━━━━━━━━━━━━━━━━━━\n📱 Status recovery is already *OFF*.\n\n💡 Use .antidelete status on to enable.`,
-                        ...channelInfo
-                    });
-                    return;
-                }
-                config.statusEnabled = false;
-                saveConfig(config);
-                await sock.sendMessage(chatId, {
-                    text: `❌ *STATUS RECOVERY DISABLED*\n\n━━━━━━━━━━━━━━━━━━━━\n📱 Deleted statuses will no longer be recovered.`,
-                    ...channelInfo
-                });
-            }
-            else {
-                await sock.sendMessage(chatId, {
-                    text: `📱 *STATUS RECOVERY:* ${config.statusEnabled ? '✅ ON' : '❌ OFF'}\n📍 *Route:* ${config.statusRoute === 'dm' ? 'Bot DM' : 'Status Owner DM'}\n\n📖 .antidelete status on/off\n📖 .antidelete statusroute dm/owner`,
-                    ...channelInfo
-                });
-            }
+            if (sub === 'on') { config.statusEnabled = true; saveConfig(config); await sock.sendMessage(chatId, { text: `✅ *STATUS RECOVERY ENABLED*`, ...getContextInfo() }); }
+            else if (sub === 'off') { config.statusEnabled = false; saveConfig(config); await sock.sendMessage(chatId, { text: `❌ *STATUS RECOVERY DISABLED*`, ...getContextInfo() }); }
+            else { await sock.sendMessage(chatId, { text: `📱 Status: ${config.statusEnabled ? 'ON' : 'OFF'}`, ...getContextInfo() }); }
         }
-        // Set status route
         else if (cmd === 'statusroute') {
             const sub = args[1]?.toLowerCase();
-            if (sub === 'dm') {
-                if (config.statusRoute === 'dm') {
-                    await sock.sendMessage(chatId, {
-                        text: `⚠️ *ALREADY SET*\n\n━━━━━━━━━━━━━━━━━━━━\n📱 Status route is already *Bot DM*.\n\n💡 Use .antidelete statusroute owner to change.`,
-                        ...channelInfo
-                    });
-                    return;
-                }
-                config.statusRoute = 'dm';
-                saveConfig(config);
-                await sock.sendMessage(chatId, {
-                    text: `✅ *STATUS ROUTE UPDATED*\n\n━━━━━━━━━━━━━━━━━━━━\n📱 Deleted statuses → *Bot DM*`,
-                    ...channelInfo
-                });
-            }
-            else if (sub === 'owner') {
-                if (config.statusRoute === 'owner') {
-                    await sock.sendMessage(chatId, {
-                        text: `⚠️ *ALREADY SET*\n\n━━━━━━━━━━━━━━━━━━━━\n📱 Status route is already *Status Owner DM*.\n\n💡 Use .antidelete statusroute dm to change.`,
-                        ...channelInfo
-                    });
-                    return;
-                }
-                config.statusRoute = 'owner';
-                saveConfig(config);
-                await sock.sendMessage(chatId, {
-                    text: `✅ *STATUS ROUTE UPDATED*\n\n━━━━━━━━━━━━━━━━━━━━\n📱 Deleted statuses → *Status Owner DM*`,
-                    ...channelInfo
-                });
-            }
+            if (sub === 'dm') { config.statusRoute = 'dm'; saveConfig(config); await sock.sendMessage(chatId, { text: `✅ Statuses → *Bot DM*`, ...getContextInfo() }); }
+            else if (sub === 'owner') { config.statusRoute = 'owner'; saveConfig(config); await sock.sendMessage(chatId, { text: `✅ Statuses → *Owner DM*`, ...getContextInfo() }); }
         }
-        // Set private route
         else if (cmd === 'private') {
             const sub = args[1]?.toLowerCase();
-            if (sub === 'dm') {
-                if (config.route.private === 'dm') {
-                    await sock.sendMessage(chatId, {
-                        text: `⚠️ *ALREADY SET*\n\n━━━━━━━━━━━━━━━━━━━━\n📩 Private route is already *Bot DM*.\n\n💡 Use .antidelete private chat to change.`,
-                        ...channelInfo
-                    });
-                    return;
-                }
-                config.route.private = 'dm';
-                saveConfig(config);
-                await sock.sendMessage(chatId, {
-                    text: `✅ *PRIVATE ROUTE UPDATED*\n\n━━━━━━━━━━━━━━━━━━━━\n📩 Deleted private messages → *Bot DM*`,
-                    ...channelInfo
-                });
-            }
-            else if (sub === 'chat') {
-                if (config.route.private === 'chat') {
-                    await sock.sendMessage(chatId, {
-                        text: `⚠️ *ALREADY SET*\n\n━━━━━━━━━━━━━━━━━━━━\n📩 Private route is already *Original Chat*.\n\n💡 Use .antidelete private dm to change.`,
-                        ...channelInfo
-                    });
-                    return;
-                }
-                config.route.private = 'chat';
-                saveConfig(config);
-                await sock.sendMessage(chatId, {
-                    text: `✅ *PRIVATE ROUTE UPDATED*\n\n━━━━━━━━━━━━━━━━━━━━\n📩 Deleted private messages → *Original Chat*`,
-                    ...channelInfo
-                });
-            }
+            if (sub === 'dm') { config.route.private = 'dm'; saveConfig(config); await sock.sendMessage(chatId, { text: `✅ Private → *Bot DM*`, ...getContextInfo() }); }
+            else if (sub === 'chat') { config.route.private = 'chat'; saveConfig(config); await sock.sendMessage(chatId, { text: `✅ Private → *Original Chat*`, ...getContextInfo() }); }
         }
-        // Set group route
         else if (cmd === 'group') {
             const sub = args[1]?.toLowerCase();
-            if (sub === 'chat') {
-                if (config.route.group === 'chat') {
-                    await sock.sendMessage(chatId, {
-                        text: `⚠️ *ALREADY SET*\n\n━━━━━━━━━━━━━━━━━━━━\n👥 Group route is already *Group Chat*.\n\n💡 Use .antidelete group dm to change.`,
-                        ...channelInfo
-                    });
-                    return;
-                }
-                config.route.group = 'chat';
-                saveConfig(config);
-                await sock.sendMessage(chatId, {
-                    text: `✅ *GROUP ROUTE UPDATED*\n\n━━━━━━━━━━━━━━━━━━━━\n👥 Deleted group messages → *Group Chat*`,
-                    ...channelInfo
-                });
-            }
-            else if (sub === 'dm') {
-                if (config.route.group === 'dm') {
-                    await sock.sendMessage(chatId, {
-                        text: `⚠️ *ALREADY SET*\n\n━━━━━━━━━━━━━━━━━━━━\n👥 Group route is already *Bot DM*.\n\n💡 Use .antidelete group chat to change.`,
-                        ...channelInfo
-                    });
-                    return;
-                }
-                config.route.group = 'dm';
-                saveConfig(config);
-                await sock.sendMessage(chatId, {
-                    text: `✅ *GROUP ROUTE UPDATED*\n\n━━━━━━━━━━━━━━━━━━━━\n👥 Deleted group messages → *Bot DM*`,
-                    ...channelInfo
-                });
-            }
+            if (sub === 'chat') { config.route.group = 'chat'; saveConfig(config); await sock.sendMessage(chatId, { text: `✅ Group → *Group Chat*`, ...getContextInfo() }); }
+            else if (sub === 'dm') { config.route.group = 'dm'; saveConfig(config); await sock.sendMessage(chatId, { text: `✅ Group → *Bot DM*`, ...getContextInfo() }); }
         }
-    } catch (err) {
-        console.error('Command error:', err);
-    }
+    } catch (err) { console.error('Command error:', err); }
 }
 
 module.exports = { handleAntideleteCommand, handleMessageRevocation, storeMessage };

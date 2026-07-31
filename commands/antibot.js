@@ -282,8 +282,10 @@ module.exports = {
     groupOnly: false,
     ownerOnly: false,
 
-    execute: async (sock, message, args, senderId, chatId) => {
+    // ✅ FIXED: Signature matches main.js call (sock, chatId, message, args)
+    execute: async (sock, chatId, message, args) => {
         try {
+            const senderId = message.key.participant || message.key.remoteJid;
             const isGroup = chatId.endsWith('@g.us');
             const isAuthorized = message.key.fromMe || await isOwnerOrSudo(senderId, sock, chatId);
             if (!isAuthorized) {
@@ -392,7 +394,7 @@ module.exports = {
         }
     },
 
-    // Main detection function called from main.js
+    // Main detection function called from main.js (but not directly imported)
     async handleMessage(sock, chatId, message) {
         try {
             if (!antibotState.enabled) return false;

@@ -203,54 +203,52 @@ async function restartProcess(sock, chatId, message) {
     }, 500);
 }
 
-// ========== COMMAND ==========
-module.exports = {
-    name: 'update',
-    category: 'Owner',
-    description: 'Update the bot from Git or ZIP (Owner only)',
-    groupOnly: false,
-    ownerOnly: true,
-
-    execute: async (sock, message, args, senderId, chatId) => {
-        const isOwner = await isOwnerOrSudo(senderId, sock, chatId);
-        if (!isOwner && !message.key.fromMe) {
-            await sock.sendMessage(chatId, {
-                text: '❌ Only bot owner or sudo can use .update',
-                ...getContextInfo()
-            }, { quoted: message });
-            return;
-        }
-
-        try {
-            await sock.sendMessage(chatId, {
-                text: '🔄 Updating the bot, please wait…',
-                ...getContextInfo()
-            }, { quoted: message });
-
-            let zipOverride = args.length > 0 ? args[0] : null;
-            if (await hasGitRepo()) {
-                const { oldRev, newRev, alreadyUpToDate, commits, files } = await updateViaGit();
-                const summary = alreadyUpToDate ? `✅ Already up to date: ${newRev}` : `✅ Updated to ${newRev}`;
-                console.log('[update]', summary);
-                await run('npm install --no-audit --no-fund');
-            } else {
-                const { copiedFiles } = await updateViaZip(sock, chatId, message, zipOverride);
-                console.log('[update] Files copied:', copiedFiles);
-            }
-
-            // Reload settings version
-            const version = require('../settings').version || 'unknown';
-            await sock.sendMessage(chatId, {
-                text: `✅ Update done! Version: ${version}. Restarting…`,
-                ...getContextInfo()
-            }, { quoted: message });
-            await restartProcess(sock, chatId, message);
-        } catch (err) {
-            console.error('❌ Update failed:', err);
-            await sock.sendMessage(chatId, {
-                text: `❌ Update failed:\n${String(err.message || err)}`,
-                ...getContextInfo()
-            }, { quoted: message });
-        }
+// ========== COMMAND FUNCTION ==========
+async function updateCommand(sock, chatId, message, zipArg) {
+    const senderId = message.key.participant || message.key.remoteJid;
+    const isOwner = await isOwnerOrSudo(senderId, sock, chatId);
+    
+    if (!isOwner && !message.key.fromMe) {
+        await sock.sendMessage(chatId, {
+            text: '❌ Only bot owner or sudo can use .update',
+            ...getContextInfo()
+        }, { quoted: message });
+        return;
     }
-};
+
+    try {
+        await sock.sendMessage(chatId, {
+            text: '🔄 Updating the bot, please wait…',
+            ...getContextInfo()
+        }, { quoted: message });
+
+        let zipOverride = zipArg || null;
+        
+        if (await hasGitRepo()) {
+            const { oldRev, newRev, alreadyUpToDate, commits, files } = await updateViaGit();
+            const summary = alreadyUpToDate ? `✅ Already up to date: ${newRev}` : `✅ Updated to ${newRev}`;
+            console.log('[update]', summary);
+            await run('npm install --no-audit --no-fund');
+        } else {
+            const { copiedFiles } = await updateViaZip(sock, chatId, message, zipOverride);
+            console.log('[update] Files copied:', copiedFiles);
+        }
+
+        // Reload settings version
+        const version = require('../settings').version || 'unknown';
+        await sock.sendMessage(chatId, {
+            text: `✅ Update done! Version: ${version}. Restarting…`,
+            ...getContextInfo()
+        }, { quoted: message });
+        await restartProcess(sock, chatId, message);
+    } catch (err) {
+        console.error('❌ Update failed:', err);
+        await sock.sendMessage(chatId, {
+            text: `❌ Update failed:\n${String(err.message || err)}`,
+            ...getContextInfo()
+        }, { quoted: message });
+    }
+}
+
+// ========== EXPORT DIRECT FUNCTION ==========
+module.exports = updateCommand;
