@@ -57,7 +57,7 @@
 > Generate your session credentials securely. Choose your preferred method.
 
 <p align="center">
-  <a href="https://dex-pairing-session.zone.id/">
+  <a href="https://dex-sessions.zone.id/">
     <img src="https://img.shields.io/badge/🔐_GET_PAIRING_CODE-cyan?style=for-the-badge&logo=whatsapp&logoColor=black&labelColor=black">
   </a>
   <a href="https://dex-pairing-session.zone.id/">
